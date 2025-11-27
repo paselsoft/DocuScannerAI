@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, Image as ImageIcon, X, Plus, Files } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, X, Plus, Files, FileText } from 'lucide-react';
 import { FileData } from '../types';
 
 interface UploadAreaProps {
@@ -76,7 +76,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
       
       {!frontFile && !backFile && !isDragging && (
         <div className="text-center mt-6 text-slate-400 text-sm">
-           Suggerimento: Puoi trascinare più file contemporaneamente per caricare Fronte e Retro insieme.
+           Suggerimento: Puoi trascinare file JPG, PNG o PDF.
         </div>
       )}
     </div>
@@ -113,25 +113,38 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
   const iconColor = color === 'blue' ? 'text-blue-500' : 'text-slate-400';
 
   if (fileData) {
+    const isPdf = fileData.mimeType === 'application/pdf';
+
     return (
       <div className="relative group rounded-xl border border-slate-200 overflow-hidden h-64 bg-white flex flex-col shadow-sm">
         <div className="absolute top-2 right-2 z-10">
           <button 
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
             className="bg-white text-red-500 p-1.5 rounded-full hover:bg-red-50 shadow-md border border-slate-100 transition-colors transform hover:scale-110"
-            title="Rimuovi immagine"
+            title="Rimuovi file"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="flex-grow relative flex items-center justify-center p-4 bg-slate-50/50">
-          <img 
-            src={fileData.previewUrl} 
-            alt="Preview" 
-            className="max-w-full max-h-full object-contain drop-shadow-sm rounded"
-          />
+        <div className="flex-grow relative flex items-center justify-center p-4 bg-slate-50/50 h-full overflow-hidden">
+          {isPdf ? (
+            <div className="flex flex-col items-center justify-center transition-transform hover:scale-105 duration-300">
+              <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-3">
+                <FileText className="w-16 h-16 text-red-500" strokeWidth={1.5} />
+              </div>
+              <span className="text-xs font-bold text-slate-500 bg-slate-200/50 px-3 py-1 rounded-full uppercase tracking-wider">
+                Documento PDF
+              </span>
+            </div>
+          ) : (
+            <img 
+              src={fileData.previewUrl} 
+              alt="Preview" 
+              className="max-w-full max-h-full object-contain drop-shadow-sm rounded"
+            />
+          )}
         </div>
-        <div className="bg-white border-t border-slate-100 p-3 text-center">
+        <div className="bg-white border-t border-slate-100 p-3 text-center z-10">
           <div className="flex items-center justify-center gap-2 mb-1">
              <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${color === 'blue' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'} uppercase`}>
                {isMain ? 'Fronte' : 'Retro'}
@@ -154,7 +167,7 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
         type="file" 
         ref={inputRef} 
         onChange={handleChange} 
-        accept="image/*" 
+        accept="image/jpeg,image/png,image/webp,application/pdf" 
         multiple
         className="hidden" 
       />
@@ -171,7 +184,7 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
         {label}
       </h3>
       <p className="text-xs text-slate-500 mt-2 max-w-[180px] leading-relaxed">
-        Clicca per selezionare o trascina i file qui
+        Clicca per selezionare o trascina file (Img/PDF)
       </p>
     </div>
   );

@@ -1,13 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ExtractedData } from "../types";
 
-const apiKey = process.env.API_KEY;
-
-if (!apiKey) {
-  console.error("API_KEY is missing from environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-for-build' });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const extractDataFromDocument = async (
   frontBase64: string, 
@@ -15,7 +9,7 @@ export const extractDataFromDocument = async (
   backBase64?: string,
   backMime?: string
 ): Promise<ExtractedData> => {
-  if (!apiKey) {
+  if (!process.env.API_KEY) {
     throw new Error("Chiave API mancante. Impossibile contattare il servizio AI.");
   }
 
@@ -42,7 +36,7 @@ export const extractDataFromDocument = async (
 
     // Aggiungi prompt
     parts.push({
-      text: `Analizza le immagini fornite (Fronte ed eventualmente Retro) di un documento d'identità italiano. 
+      text: `Analizza i documenti forniti (Immagini o PDF) di un documento d'identità italiano. 
       Estrai i dati e classifica il documento in una delle seguenti categorie esatte:
       - "Carta d'Identità"
       - "Patente di Guida"
@@ -101,7 +95,7 @@ export const extractDataFromDocument = async (
   } catch (error: any) {
     console.error("Errore durante l'estrazione dati:", error);
     if (error.message.includes("400") || error.message.includes("SAFETY")) {
-       throw new Error("Immagine rifiutata per motivi di sicurezza o formato non valido.");
+       throw new Error("Immagine/File rifiutato per motivi di sicurezza o formato non valido.");
     }
     if (error.message.includes("fetch")) {
         throw new Error("Errore di connessione. Verifica la tua rete.");

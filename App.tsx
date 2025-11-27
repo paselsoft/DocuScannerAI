@@ -3,11 +3,12 @@ import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
 import { ResultForm } from './components/ResultForm';
 import { JotformModal } from './components/JotformModal';
+import { PdfThumbnail } from './components/PdfThumbnail';
 import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
 import { encryptAndSave, getStoredDocsList, EncryptedDocument } from './services/security';
 import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, ShieldCheck, Lock, History, ScanSearch, Plus, X, FileText, Send } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send } from 'lucide-react';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -44,17 +45,10 @@ const App: React.FC = () => {
     ));
   };
 
-  // Helper per aggiornare una sessione specifica (per upload batch)
-  const updateSessionById = (id: string, updates: Partial<DocumentSession>) => {
-    setSessions(prev => prev.map(s => 
-      s.id === id ? { ...s, ...updates } : s
-    ));
-  };
-
   const validateFile = (file: File): string | null => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
-      return "Formato file non supportato. Usa JPG o PNG.";
+      return "Formato file non supportato. Usa JPG, PNG o PDF.";
     }
     if (file.size > 5 * 1024 * 1024) { // 5MB
       return "Il file è troppo grande. Dimensione massima 5MB.";
@@ -115,8 +109,6 @@ const App: React.FC = () => {
         let currentBatchSession: Partial<DocumentSession> = {};
         
         processedFiles.forEach((pf, idx) => {
-          // Logica semplice: crea una nuova sessione per ogni file e mettilo come Fronte
-          // Oppure: prova ad accoppiarli a 2 a 2
           
           if (idx % 2 === 0) {
              // Inizia nuova coppia
@@ -139,11 +131,6 @@ const App: React.FC = () => {
         });
 
         setSessions(prev => [...prev, ...newSessions]);
-        // Passa all'ultima sessione creata se la corrente era vuota, altrimenti rimani
-        if (!activeSession.frontFile) {
-           // Se la sessione corrente è vuota, potremmo volerla rimuovere o riempire con il primo del batch
-           // Per semplicità, aggiungiamo solo le nuove sessioni.
-        }
       }
 
     } catch (e) {
@@ -203,7 +190,7 @@ const App: React.FC = () => {
           ...activeSession.extractedData,
           [field]: value
         },
-        saveSuccess: false // Reset save state when data changes to indicate edit
+        saveSuccess: false
       });
     }
   };
@@ -242,6 +229,25 @@ const App: React.FC = () => {
     }
   };
 
+  // Helper component for PDF/Image preview in results
+  const ResultPreview = ({ file, label }: { file: FileData; label: string }) => {
+    const isPdf = file.mimeType === 'application/pdf';
+    return (
+      <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+        <span className={`text-[10px] font-bold ${label === 'Fronte' ? 'text-blue-600 bg-blue-50' : 'text-slate-600 bg-slate-100'} px-2 py-1 rounded uppercase mb-2 inline-block`}>
+          {label}
+        </span>
+        <div className="relative rounded-lg overflow-hidden bg-slate-50 h-32 flex items-center justify-center">
+          {isPdf ? (
+            <PdfThumbnail file={file.file} className="w-full h-full" />
+          ) : (
+            <img src={file.previewUrl} className="max-w-full max-h-full object-contain" alt={label} />
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
@@ -270,7 +276,6 @@ const App: React.FC = () => {
                 </span>
               </div>
               
-              {/* Status Icons in Tab */}
               <div className="ml-auto flex items-center gap-1">
                  {session.saveSuccess && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                  {session.status === ProcessingStatus.ERROR && <AlertCircle className="w-4 h-4 text-red-500" />}
@@ -305,7 +310,7 @@ const App: React.FC = () => {
                    Carica {activeSession.name}
                 </h2>
                 <p className="text-slate-600">
-                  Trascina uno o più file per iniziare. Supporto multi-documento automatico.
+                  Trascina uno o più file (Immagini o PDF) per iniziare.
                 </p>
               </div>
               
@@ -384,20 +389,10 @@ const App: React.FC = () => {
               {/* Left Column: Image Previews */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded uppercase mb-2 inline-block">Fronte</span>
-                      <div className="relative rounded-lg overflow-hidden bg-slate-50 h-32 flex items-center justify-center">
-                        <img src={activeSession.frontFile.previewUrl} className="max-w-full max-h-full object-contain" alt="Fronte" />
-                      </div>
-                    </div>
+                    <ResultPreview file={activeSession.frontFile} label="Fronte" />
 
                     {activeSession.backFile ? (
-                       <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-                         <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded uppercase mb-2 inline-block">Retro</span>
-                         <div className="relative rounded-lg overflow-hidden bg-slate-50 h-32 flex items-center justify-center">
-                           <img src={activeSession.backFile.previewUrl} className="max-w-full max-h-full object-contain" alt="Retro" />
-                         </div>
-                       </div>
+                       <ResultPreview file={activeSession.backFile} label="Retro" />
                     ) : (
                        <div className="border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-300 text-xs text-center p-4">
                           Nessun Retro
