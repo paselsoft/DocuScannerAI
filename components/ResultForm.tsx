@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ExtractedData } from '../types';
-import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Edit3 } from 'lucide-react';
+import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Edit3, Copy, Check, AlertTriangle } from 'lucide-react';
 
 interface ResultFormProps {
   data: ExtractedData;
   onChange: (field: keyof ExtractedData, value: string) => void;
+  sessions?: any[]; // Opzionale per compatibilità
+  activeSessionId?: string;
+  setActiveSessionId?: (id: string) => void;
 }
 
 const DOCUMENT_TYPES = [
@@ -15,9 +18,40 @@ const DOCUMENT_TYPES = [
   "Altro"
 ];
 
-export const ResultForm: React.FC<ResultFormProps> = ({ data, onChange }) => {
+// Helper per validazione
+const Validators = {
+  date: (val: string) => /^\d{2}\/\d{2}\/\d{4}$/.test(val),
+  cf: (val: string) => /^[A-Z0-9]{16}$/i.test(val),
+  notEmpty: (val: string) => val.trim().length > 0
+};
+
+export const ResultForm: React.FC<ResultFormProps> = ({ 
+  data, 
+  onChange,
+  sessions = [],
+  activeSessionId,
+  setActiveSessionId
+}) => {
   const handleChange = (field: keyof ExtractedData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     onChange(field, e.target.value);
+  };
+
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedType = e.target.value;
+    
+    // Cerca se esiste già una sessione con questo tipo di documento
+    const existingSession = sessions.find(s => 
+      s.id !== activeSessionId && 
+      s.extractedData?.tipo_documento === selectedType
+    );
+
+    if (existingSession && setActiveSessionId) {
+      // Se esiste, naviga a quella sessione
+      setActiveSessionId(existingSession.id);
+    } else {
+      // Altrimenti aggiorna il tipo del documento corrente
+      onChange('tipo_documento', selectedType);
+    }
   };
 
   return (
@@ -34,14 +68,19 @@ export const ResultForm: React.FC<ResultFormProps> = ({ data, onChange }) => {
         <div className="relative">
             <select
               value={data.tipo_documento || ''}
-              onChange={handleChange('tipo_documento')}
+              onChange={handleTypeChange}
               className="appearance-none bg-white text-slate-700 font-medium text-sm pl-3 pr-10 py-2 rounded-lg border border-slate-300 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all w-full md:w-auto shadow-sm"
-              title="Modifica tipo documento"
+              title="Modifica tipo documento o vai a documento esistente"
             >
               <option value="" disabled>Seleziona tipo...</option>
-              {DOCUMENT_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
+              {DOCUMENT_TYPES.map((type) => {
+                 const exists = sessions.find(s => s.id !== activeSessionId && s.extractedData?.tipo_documento === type);
+                 return (
+                  <option key={type} value={type}>
+                    {exists ? `➔ Vai a: ${type}` : type}
+                  </option>
+                 );
+              })}
             </select>
             <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
         </div>
@@ -49,125 +88,151 @@ export const ResultForm: React.FC<ResultFormProps> = ({ data, onChange }) => {
       
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        {/* Cognome */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <User className="w-3 h-3" /> Cognome
-          </label>
-          <input
-            type="text"
-            value={data.cognome || ''}
-            onChange={handleChange('cognome')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-medium text-slate-900 placeholder-slate-400"
-          />
-        </div>
+        <FieldInput 
+          label="Cognome"
+          icon={User}
+          value={data.cognome}
+          onChange={handleChange('cognome')}
+          validate={Validators.notEmpty}
+        />
 
-        {/* Nome */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <User className="w-3 h-3" /> Nome
-          </label>
-          <input
-            type="text"
-            value={data.nome || ''}
-            onChange={handleChange('nome')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-medium text-slate-900 placeholder-slate-400"
-          />
-        </div>
+        <FieldInput 
+          label="Nome"
+          icon={User}
+          value={data.nome}
+          onChange={handleChange('nome')}
+          validate={Validators.notEmpty}
+        />
 
-        {/* Data di Nascita */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3 h-3" /> Data di Nascita
-          </label>
-          <input
-            type="text"
-            value={data.data_nascita || ''}
-            onChange={handleChange('data_nascita')}
-            placeholder="GG/MM/AAAA"
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400"
-          />
-        </div>
+        <FieldInput 
+          label="Data di Nascita"
+          icon={Calendar}
+          value={data.data_nascita}
+          onChange={handleChange('data_nascita')}
+          placeholder="GG/MM/AAAA"
+          validate={Validators.date}
+          warningMessage="Formato atteso: GG/MM/AAAA"
+        />
 
-        {/* Luogo di Nascita */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> Luogo di Nascita
-          </label>
-          <input
-            type="text"
-            value={data.luogo_nascita || ''}
-            onChange={handleChange('luogo_nascita')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400"
-          />
-        </div>
+        <FieldInput 
+          label="Luogo di Nascita"
+          icon={MapPin}
+          value={data.luogo_nascita}
+          onChange={handleChange('luogo_nascita')}
+        />
 
-        {/* Indirizzo */}
-        <div className="space-y-1 md:col-span-2">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <Map className="w-3 h-3" /> Indirizzo Residenza
-          </label>
-          <input
-            type="text"
-            value={data.indirizzo_residenza || ''}
+        <div className="md:col-span-2">
+            <FieldInput 
+            label="Indirizzo Residenza"
+            icon={Map}
+            value={data.indirizzo_residenza}
             onChange={handleChange('indirizzo_residenza')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400"
-          />
+            />
         </div>
 
-        {/* Città */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <MapPin className="w-3 h-3" /> Città Residenza
-          </label>
-          <input
+        <FieldInput 
+          label="Città Residenza"
+          icon={MapPin}
+          value={data.citta_residenza}
+          onChange={handleChange('citta_residenza')}
+        />
+
+        <FieldInput 
+          label="Codice Fiscale"
+          icon={CreditCard}
+          value={data.codice_fiscale}
+          onChange={handleChange('codice_fiscale')}
+          className="font-mono"
+          validate={Validators.cf}
+          warningMessage="Dovrebbe essere di 16 caratteri"
+        />
+
+        <FieldInput 
+          label="N. Documento"
+          icon={Hash}
+          value={data.numero_documento}
+          onChange={handleChange('numero_documento')}
+          className="font-mono"
+        />
+
+         <FieldInput 
+          label="Data Scadenza"
+          icon={Calendar}
+          value={data.data_scadenza}
+          onChange={handleChange('data_scadenza')}
+          placeholder="GG/MM/AAAA"
+          validate={Validators.date}
+          warningMessage="Formato atteso: GG/MM/AAAA"
+        />
+
+      </div>
+    </div>
+  );
+};
+
+interface FieldInputProps {
+  label: string;
+  icon: React.ElementType;
+  value: string | undefined;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  className?: string;
+  placeholder?: string;
+  validate?: (val: string) => boolean;
+  warningMessage?: string;
+}
+
+const FieldInput: React.FC<FieldInputProps> = ({ 
+  label, 
+  icon: Icon, 
+  value = '', 
+  onChange, 
+  className = '', 
+  placeholder,
+  validate,
+  warningMessage
+}) => {
+  const [copied, setCopied] = useState(false);
+  
+  const isValid = validate ? validate(value) : true;
+  const showWarning = value && !isValid;
+
+  const handleCopy = () => {
+    if (!value) return;
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-1 relative group/field">
+      <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1 justify-between">
+        <span className="flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</span>
+        {showWarning && (
+            <span className="text-[10px] text-orange-600 flex items-center gap-1 animate-pulse">
+                <AlertTriangle className="w-3 h-3" /> {warningMessage || 'Formato non valido'}
+            </span>
+        )}
+      </label>
+      <div className="relative">
+        <input
             type="text"
-            value={data.citta_residenza || ''}
-            onChange={handleChange('citta_residenza')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400"
-          />
-        </div>
-
-        {/* Codice Fiscale (Optional) */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <CreditCard className="w-3 h-3" /> Codice Fiscale
-          </label>
-          <input
-            type="text"
-            value={data.codice_fiscale || ''}
-            onChange={handleChange('codice_fiscale')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono text-slate-900 placeholder-slate-400"
-          />
-        </div>
-
-        {/* Numero Documento */}
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <Hash className="w-3 h-3" /> N. Documento
-          </label>
-          <input
-            type="text"
-            value={data.numero_documento || ''}
-            onChange={handleChange('numero_documento')}
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all font-mono text-slate-900 placeholder-slate-400"
-          />
-        </div>
-
-         {/* Data di Scadenza */}
-         <div className="space-y-1">
-          <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1">
-            <Calendar className="w-3 h-3" /> Data Scadenza
-          </label>
-          <input
-            type="text"
-            value={data.data_scadenza || ''}
-            onChange={handleChange('data_scadenza')}
-            placeholder="GG/MM/AAAA"
-            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-slate-900 placeholder-slate-400"
-          />
-        </div>
-
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={`
+                w-full pl-3 pr-10 py-2 bg-white border rounded-lg outline-none transition-all text-slate-900 placeholder-slate-400
+                focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                ${showWarning ? 'border-orange-300 bg-orange-50 focus:border-orange-500' : 'border-slate-300'}
+                ${className}
+            `}
+        />
+        <button
+            onClick={handleCopy}
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
+            title="Copia"
+        >
+            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+        </button>
       </div>
     </div>
   );
