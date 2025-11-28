@@ -54,6 +54,5 @@ export interface JotformConfig {
 }
 
 export interface JotformSettings {
-  tt746: JotformConfig;
-  tt2112: JotformConfig;
+  [key: string]: JotformConfig;
 }
