@@ -273,11 +273,11 @@ export const JotformModal: React.FC<JotformModalProps> = ({ isOpen, onClose, dat
                             type="text"
                             value={settings[activeProfile].mappings[key as keyof typeof DEFAULT_MAPPINGS]}
                             onChange={(e) => updateMapping(key as keyof typeof DEFAULT_MAPPINGS, e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none bg-white text-slate-900"
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none bg-white text-slate-900 pr-8"
                             placeholder={DEFAULT_MAPPINGS[key as keyof typeof DEFAULT_MAPPINGS]}
                             />
                             {settings[activeProfile].mappings[key as keyof typeof DEFAULT_MAPPINGS] && (
-                                <Check className="w-3 h-3 text-green-500 absolute right-3 top-1/2 transform -translate-y-1/2" />
+                                <Check className="w-4 h-4 text-green-500 absolute right-3 top-1/2 transform -translate-y-1/2" />
                             )}
                         </div>
                     </div>

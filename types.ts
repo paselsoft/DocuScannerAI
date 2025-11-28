@@ -53,6 +53,7 @@ export interface JotformConfig {
   mappings: JotformFieldMapping;
 }
 
+// Aggiornato per supportare chiavi dinamiche (Profili documento)
 export interface JotformSettings {
-  [key: string]: JotformConfig;
+  [profileName: string]: JotformConfig;
 }

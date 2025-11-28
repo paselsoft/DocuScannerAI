@@ -63,7 +63,7 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
         iv: btoa(String.fromCharCode(...iv)),
         data: btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer))),
         previewSummary: `${data.tipo_documento} - ${data.cognome} ${data.nome}`,
-        docType: data.tipo_documento
+        docType: data.tipo_documento // Salviamo il tipo per i filtri
       };
   
       // Salva nel localStorage (simulazione DB sicuro)
