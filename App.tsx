@@ -4,11 +4,13 @@ import { UploadArea } from './components/UploadArea';
 import { ResultForm } from './components/ResultForm';
 import { JotformModal } from './components/JotformModal';
 import { PdfThumbnail } from './components/PdfThumbnail';
+import { AuthForm } from './components/AuthForm';
 import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
-import { encryptAndSave, getStoredDocsList, EncryptedDocument } from './services/security';
+import { saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument } from './services/dbService';
+import { supabase, isConfigured, saveSupabaseConfig } from './services/supabaseClient';
 import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send, Pencil, Filter } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Cloud, History, ScanSearch, Plus, X, FileText, Send, Pencil, Filter, Trash2, Database, Key } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -34,10 +36,18 @@ const VAULT_FILTERS = [
 ];
 
 const App: React.FC = () => {
+  const [session, setSession] = useState<any>(null); // Supabase User Session
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isSupabaseReady, setIsSupabaseReady] = useState(isConfigured());
+
+  // Stati Configurazione Supabase (se mancano chiavi)
+  const [configUrl, setConfigUrl] = useState('');
+  const [configKey, setConfigKey] = useState('');
+
   const [sessions, setSessions] = useState<DocumentSession[]>([createEmptySession(0)]);
   const [activeSessionId, setActiveSessionId] = useState<string>(sessions[0].id);
   
-  const [savedDocs, setSavedDocs] = useState<EncryptedDocument[]>([]);
+  const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isJotformOpen, setIsJotformOpen] = useState(false);
 
@@ -48,21 +58,60 @@ const App: React.FC = () => {
   // Stato per il filtro del Vault
   const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
 
-  // Recupera la sessione attiva
+  // Gestione Autenticazione
+  useEffect(() => {
+    if (!isSupabaseReady) {
+        setIsLoadingAuth(false);
+        return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoadingAuth(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [isSupabaseReady]);
+
+  // Carica i documenti dal cloud quando l'utente è loggato
+  useEffect(() => {
+    if (session) {
+      loadDocs();
+    }
+  }, [session]);
+
+  const loadDocs = async () => {
+    try {
+      const docs = await fetchDocumentsFromDb();
+      setSavedDocs(docs);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleConfigSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          saveSupabaseConfig(configUrl, configKey);
+      } catch (e: any) {
+          toast.error(e.message);
+      }
+  };
+
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
 
-  useEffect(() => {
-    setSavedDocs(getStoredDocsList());
-  }, []);
-
-  // Helper per aggiornare la sessione corrente
   const updateActiveSession = (updates: Partial<DocumentSession>) => {
     setSessions(prev => prev.map(s => 
       s.id === activeSessionId ? { ...s, ...updates } : s
     ));
   };
 
-  // Funzioni per rinominare la sessione
   const startRenaming = (session: DocumentSession, e: React.MouseEvent) => {
     e.stopPropagation();
     setRenamingId(session.id);
@@ -92,7 +141,7 @@ const App: React.FC = () => {
     if (!validTypes.includes(file.type)) {
       return "Formato file non supportato. Usa JPG, PNG o PDF.";
     }
-    if (file.size > 5 * 1024 * 1024) { // 5MB
+    if (file.size > 5 * 1024 * 1024) { 
       return "Il file è troppo grande. Dimensione massima 5MB.";
     }
     return null;
@@ -115,7 +164,6 @@ const App: React.FC = () => {
     }
 
     try {
-      // Converti tutti i file in FileData
       const processedFiles = await Promise.all(validFiles.map(async f => ({
         file: f,
         previewUrl: URL.createObjectURL(f),
@@ -123,9 +171,6 @@ const App: React.FC = () => {
         mimeType: f.type
       })));
 
-      // LOGICA DI ASSEGNAZIONE INTELLIGENTE
-      
-      // Caso 1: Un solo file caricato nella sessione corrente
       if (processedFiles.length === 1) {
         const fileData = processedFiles[0];
         if (!activeSession.frontFile) {
@@ -133,11 +178,9 @@ const App: React.FC = () => {
         } else if (!activeSession.backFile) {
           updateActiveSession({ backFile: fileData, errorMsg: null });
         } else {
-          // Se entrambi pieni, sostituisci il fronte (comportamento standard)
           updateActiveSession({ frontFile: fileData, errorMsg: null });
         }
       } 
-      // Caso 2: Due file caricati contemporaneamente (Coppia Fronte/Retro)
       else if (processedFiles.length === 2 && !activeSession.frontFile && !activeSession.backFile) {
         updateActiveSession({
           frontFile: processedFiles[0],
@@ -145,16 +188,12 @@ const App: React.FC = () => {
           errorMsg: null
         });
       }
-      // Caso 3: Batch Upload (più file o sessione corrente già piena)
       else {
-        // Distribuisci i file in nuove sessioni
         const newSessions: DocumentSession[] = [];
         let currentBatchSession: Partial<DocumentSession> = {};
         
         processedFiles.forEach((pf, idx) => {
-          
           if (idx % 2 === 0) {
-             // Inizia nuova coppia
              currentBatchSession = {
                id: generateId(),
                name: `Documento ${sessions.length + newSessions.length + 1}`,
@@ -167,7 +206,6 @@ const App: React.FC = () => {
              };
              newSessions.push(currentBatchSession as DocumentSession);
           } else {
-            // Completa la coppia precedente con il Retro
             const lastSession = newSessions[newSessions.length - 1];
             lastSession.backFile = pf;
           }
@@ -243,21 +281,33 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSecureSave = async () => {
+  // Salvataggio su Supabase
+  const handleCloudSave = async () => {
     if (!activeSession.extractedData) return;
     setIsSaving(true);
     try {
-      await encryptAndSave(activeSession.extractedData);
-      setSavedDocs(getStoredDocsList());
+      await saveDocumentToDb(activeSession.extractedData);
+      await loadDocs(); // Ricarica lista dal cloud
       updateActiveSession({ saveSuccess: true });
-      toast.success("Dati salvati nel Vault in sicurezza.");
+      toast.success("Documento salvato nel cloud!");
       setTimeout(() => updateActiveSession({ saveSuccess: false }), 3000);
-    } catch (e) {
-      toast.error("Errore durante il salvataggio sicuro.");
+    } catch (e: any) {
+      toast.error(e.message);
     } finally {
       setIsSaving(false);
     }
   };
+
+  const handleDeleteDoc = async (id: string) => {
+    if (!confirm("Sei sicuro di voler eliminare questo documento dal cloud?")) return;
+    try {
+        await deleteDocumentFromDb(id);
+        setSavedDocs(prev => prev.filter(d => d.id !== id));
+        toast.info("Documento eliminato.");
+    } catch (e) {
+        toast.error("Errore durante l'eliminazione.");
+    }
+  }
 
   const addNewSession = () => {
     const newSession = createEmptySession(sessions.length);
@@ -278,7 +328,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Helper component for PDF/Image preview in results
   const ResultPreview = ({ file, label }: { file: FileData; label: string }) => {
     const isPdf = file.mimeType === 'application/pdf';
     return (
@@ -297,15 +346,89 @@ const App: React.FC = () => {
     );
   };
 
-  // Filtra i documenti del vault
   const filteredDocs = savedDocs.filter(doc => {
     if (vaultFilter === "Tutti") return true;
-    // Se abbiamo il campo docType esplicito (nuovi salvataggi)
-    if (doc.docType) return doc.docType === vaultFilter;
-    // Fallback per vecchi salvataggi: controlla se la stringa inizia con il filtro
-    return doc.previewSummary.startsWith(vaultFilter);
+    return doc.doc_type === vaultFilter;
   });
 
+  if (isLoadingAuth) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div>;
+  }
+
+  // --- CONFIGURAZIONE SUPABASE MANCANTE ---
+  if (!isSupabaseReady) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+            <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-lg border border-slate-100">
+                <div className="text-center mb-6">
+                    <div className="bg-emerald-600 w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-200">
+                        <Database className="w-6 h-6 text-white" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900">Configurazione Database</h1>
+                    <p className="text-slate-500 text-sm mt-2">
+                        Per salvare i tuoi dati in cloud, connetti il tuo progetto Supabase.
+                    </p>
+                </div>
+
+                <form onSubmit={handleConfigSubmit} className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-700 mb-4">
+                        <span className="font-bold">Nota:</span> Inserisci l'URL e la chiave Anon del tuo progetto. Questi dati verranno salvati solo nel tuo browser.
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1 ml-1">Project URL</label>
+                        <div className="relative">
+                            <Cloud className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="url"
+                                required
+                                value={configUrl}
+                                onChange={(e) => setConfigUrl(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono text-sm"
+                                placeholder="https://xyz.supabase.co"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-slate-600 uppercase mb-1 ml-1">Anon / Public Key</label>
+                        <div className="relative">
+                            <Key className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                required
+                                value={configKey}
+                                onChange={(e) => setConfigKey(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 transition-all font-mono text-sm"
+                                placeholder="eyJhbGciOiJIUzI1NiIsInR..."
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold shadow-lg hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 mt-6"
+                    >
+                        <Save className="w-5 h-5" /> Salva e Connetti
+                    </button>
+                </form>
+                <ToastContainer position="bottom-center" theme="colored" />
+            </div>
+        </div>
+    );
+  }
+
+  // --- UTENTE NON LOGGATO ---
+  if (!session) {
+    return (
+      <>
+        <AuthForm />
+        <ToastContainer position="bottom-center" theme="colored" />
+      </>
+    );
+  }
+
+  // --- APP PRINCIPALE ---
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
@@ -353,7 +476,6 @@ const App: React.FC = () => {
               </div>
               
               <div className="ml-2 flex items-center gap-1 flex-shrink-0">
-                 {/* Rename button only for active session */}
                  {activeSessionId === session.id && renamingId !== session.id && (
                     <button
                         onClick={(e) => startRenaming(session, e)}
@@ -390,7 +512,6 @@ const App: React.FC = () => {
         {/* ACTIVE SESSION CONTENT */}
         <div className="animate-fade-in">
           
-          {/* Intro / Upload State */}
           {activeSession.status === ProcessingStatus.IDLE && (
             <div className="max-w-4xl mx-auto space-y-8">
               <div className="text-center space-y-2">
@@ -435,7 +556,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Loading State */}
           {activeSession.status === ProcessingStatus.PROCESSING && (
             <div className="flex flex-col items-center justify-center h-[50vh] space-y-6">
               <div className="relative">
@@ -451,7 +571,6 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Error State */}
           {activeSession.status === ProcessingStatus.ERROR && (
             <div className="max-w-xl mx-auto mt-12 bg-white p-8 rounded-xl shadow-sm border border-red-100 text-center space-y-4">
               <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
@@ -470,11 +589,9 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {/* Success State */}
           {activeSession.status === ProcessingStatus.SUCCESS && activeSession.extractedData && activeSession.frontFile && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               
-              {/* Left Column: Image Previews */}
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     <ResultPreview file={activeSession.frontFile} label="Fronte" />
@@ -496,7 +613,6 @@ const App: React.FC = () => {
                 </button>
               </div>
 
-              {/* Right Column: Form */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
@@ -514,7 +630,7 @@ const App: React.FC = () => {
                 
                 <div className="flex gap-3">
                   <button 
-                    onClick={handleSecureSave}
+                    onClick={handleCloudSave}
                     disabled={isSaving || activeSession.saveSuccess}
                     className={`flex-1 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 font-semibold ${
                       activeSession.saveSuccess 
@@ -526,11 +642,11 @@ const App: React.FC = () => {
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : activeSession.saveSuccess ? (
                         <>
-                            <CheckCircle2 className="w-5 h-5" /> Salvato
+                            <CheckCircle2 className="w-5 h-5" /> Salvato nel Cloud
                         </>
                     ) : (
                         <>
-                            <Save className="w-5 h-5" /> Salva nel Vault
+                            <Cloud className="w-5 h-5" /> Salva (Cloud)
                         </>
                     )}
                   </button>
@@ -553,10 +669,9 @@ const App: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-2 text-slate-800">
                   <History className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-lg">Vault Globale</h3>
+                  <h3 className="font-semibold text-lg">Archivio Cloud</h3>
                 </div>
 
-                {/* Filters */}
                 <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
                   <span className="text-xs text-slate-400 mr-1 flex items-center gap-1">
                     <Filter className="w-3 h-3" /> Filtra:
@@ -580,7 +695,7 @@ const App: React.FC = () => {
 
               {filteredDocs.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                   <p className="text-slate-500 text-sm">Nessun documento trovato per il filtro "{vaultFilter}"</p>
+                   <p className="text-slate-500 text-sm">Nessun documento trovato nel cloud per "{vaultFilter}"</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -588,15 +703,19 @@ const App: React.FC = () => {
                     <div key={doc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
                       <div>
                         <div className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                            <Lock className="w-3 h-3 text-green-600" /> {doc.previewSummary}
+                            <Cloud className="w-3 h-3 text-blue-600" /> {doc.summary}
                         </div>
                         <div className="text-xs text-slate-400 mt-1">
-                            Salvato il {new Date(doc.timestamp).toLocaleDateString()}
+                            Salvato il {new Date(doc.created_at).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="bg-slate-50 p-2 rounded-full text-slate-400">
-                        <FileText className="w-4 h-4" />
-                      </div>
+                      <button 
+                        onClick={() => handleDeleteDoc(doc.id)}
+                        className="bg-slate-50 p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        title="Elimina"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>

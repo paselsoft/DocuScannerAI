@@ -5,9 +5,11 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react()],
-    // Configurazione vitale per far funzionare process.env.API_KEY nel browser dopo il build
+    // Configurazione vitale per far funzionare process.env.API_KEY e le variabili Supabase nel browser
     define: {
-      'process.env.API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY)
+      'process.env.API_KEY': JSON.stringify(process.env.API_KEY || env.API_KEY),
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(process.env.VITE_SUPABASE_URL || env.VITE_SUPABASE_URL),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY)
     },
     server: {
       port: 8080,
