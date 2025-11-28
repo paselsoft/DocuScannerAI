@@ -39,6 +39,7 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
     iv: string; // Vettore di inizializzazione base64
     data: string; // Dati crittografati base64
     previewSummary: string; // Dati minimi in chiaro per la lista (es. "Patente - Mario Rossi")
+    docType?: string; // Tipo documento per filtraggio (opzionale per retrocompatibilità)
   }
   
   export const encryptAndSave = async (data: any): Promise<void> => {
@@ -61,7 +62,8 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
         timestamp: Date.now(),
         iv: btoa(String.fromCharCode(...iv)),
         data: btoa(String.fromCharCode(...new Uint8Array(encryptedBuffer))),
-        previewSummary: `${data.tipo_documento} - ${data.cognome} ${data.nome}`
+        previewSummary: `${data.tipo_documento} - ${data.cognome} ${data.nome}`,
+        docType: data.tipo_documento
       };
   
       // Salva nel localStorage (simulazione DB sicuro)

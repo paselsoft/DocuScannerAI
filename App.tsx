@@ -8,7 +8,7 @@ import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
 import { encryptAndSave, getStoredDocsList, EncryptedDocument } from './services/security';
 import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send, Pencil } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send, Pencil, Filter } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -24,6 +24,15 @@ const createEmptySession = (index: number): DocumentSession => ({
   saveSuccess: false
 });
 
+const VAULT_FILTERS = [
+  "Tutti",
+  "Carta d'Identità",
+  "Patente di Guida",
+  "Tessera Sanitaria",
+  "Passaporto",
+  "Altro"
+];
+
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<DocumentSession[]>([createEmptySession(0)]);
   const [activeSessionId, setActiveSessionId] = useState<string>(sessions[0].id);
@@ -35,6 +44,9 @@ const App: React.FC = () => {
   // Stati per la rinomina della sessione
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState("");
+
+  // Stato per il filtro del Vault
+  const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
 
   // Recupera la sessione attiva
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
@@ -285,6 +297,15 @@ const App: React.FC = () => {
     );
   };
 
+  // Filtra i documenti del vault
+  const filteredDocs = savedDocs.filter(doc => {
+    if (vaultFilter === "Tutti") return true;
+    // Se abbiamo il campo docType esplicito (nuovi salvataggi)
+    if (doc.docType) return doc.docType === vaultFilter;
+    // Fallback per vecchi salvataggi: controlla se la stringa inizia con il filtro
+    return doc.previewSummary.startsWith(vaultFilter);
+  });
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
@@ -529,27 +550,57 @@ const App: React.FC = () => {
         {/* Global Vault Summary */}
         {savedDocs.length > 0 && (
           <div className="mt-16 pt-8 border-t border-slate-200">
-              <div className="flex items-center gap-2 mb-6 text-slate-800">
-                <History className="w-5 h-5 text-blue-600" />
-                <h3 className="font-semibold text-lg">Vault Globale (Documenti Archiviati)</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-2 text-slate-800">
+                  <History className="w-5 h-5 text-blue-600" />
+                  <h3 className="font-semibold text-lg">Vault Globale</h3>
+                </div>
+
+                {/* Filters */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
+                  <span className="text-xs text-slate-400 mr-1 flex items-center gap-1">
+                    <Filter className="w-3 h-3" /> Filtra:
+                  </span>
+                  {VAULT_FILTERS.map(filter => (
+                    <button
+                      key={filter}
+                      onClick={() => setVaultFilter(filter)}
+                      className={`
+                        text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors border
+                        ${vaultFilter === filter 
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}
+                      `}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {savedDocs.map((doc) => (
-                  <div key={doc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
-                    <div>
-                      <div className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                          <Lock className="w-3 h-3 text-green-600" /> {doc.previewSummary}
+
+              {filteredDocs.length === 0 ? (
+                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
+                   <p className="text-slate-500 text-sm">Nessun documento trovato per il filtro "{vaultFilter}"</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredDocs.map((doc) => (
+                    <div key={doc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                            <Lock className="w-3 h-3 text-green-600" /> {doc.previewSummary}
+                        </div>
+                        <div className="text-xs text-slate-400 mt-1">
+                            Salvato il {new Date(doc.timestamp).toLocaleDateString()}
+                        </div>
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
-                          Salvato il {new Date(doc.timestamp).toLocaleDateString()}
+                      <div className="bg-slate-50 p-2 rounded-full text-slate-400">
+                        <FileText className="w-4 h-4" />
                       </div>
                     </div>
-                    <div className="bg-slate-50 p-2 rounded-full text-slate-400">
-                       <FileText className="w-4 h-4" />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
           </div>
         )}
 
