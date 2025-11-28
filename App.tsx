@@ -3,7 +3,7 @@ import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
 import { ResultForm } from './components/ResultForm';
 import { JotformModal } from './components/JotformModal';
-import { PdfThumbnail } from './services/PdfThumbnail'; // Fixed import path
+import { PdfThumbnail } from './components/PdfThumbnail';
 import { AuthForm } from './components/AuthForm';
 import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
@@ -823,6 +823,11 @@ const App: React.FC = () => {
 
       {/* Global Toast Notifications */}
       <ToastContainer position="bottom-right" theme="colored" autoClose={3000} />
+      
+      {/* Version Indicator */}
+      <div className="fixed bottom-2 left-2 text-[10px] text-slate-300 pointer-events-none">
+        v0.2.0-beta
+      </div>
     </div>
   );
 };
