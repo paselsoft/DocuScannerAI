@@ -8,6 +8,7 @@ export interface ExtractedData {
   codice_fiscale?: string;
   numero_documento?: string;
   data_scadenza?: string;
+  data_rilascio?: string; // Nuovo campo
   tipo_documento: string;
 }
 
@@ -46,6 +47,7 @@ export interface JotformFieldMapping {
   codice_fiscale: string;
   numero_documento: string;
   data_scadenza: string;
+  data_rilascio: string; // Nuovo campo
 }
 
 export interface JotformConfig {

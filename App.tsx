@@ -3,15 +3,16 @@ import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
 import { ResultForm } from './components/ResultForm';
 import { JotformModal } from './components/JotformModal';
-import { PdfThumbnail } from './components/PdfThumbnail';
+import { PdfThumbnail } from './services/PdfThumbnail'; // Fixed import path
 import { AuthForm } from './components/AuthForm';
 import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
 import { saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument } from './services/dbService';
 import { supabase, isConfigured, saveSupabaseConfig } from './services/supabaseClient';
 import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Cloud, History, ScanSearch, Plus, X, FileText, Send, Pencil, Filter, Trash2, Database, Key } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Cloud, History, ScanSearch, Plus, X, FileText, Send, Pencil, Filter, Trash2, Database, Key, Printer } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
+import { generateLegalizationPdf } from './services/pdfGenerator';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -57,6 +58,9 @@ const App: React.FC = () => {
 
   // Stato per il filtro del Vault
   const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
+
+  // Stato per la cancellazione documento
+  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
 
   // Gestione Autenticazione
   useEffect(() => {
@@ -281,6 +285,22 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLoadDoc = (doc: SavedDocument) => {
+    // Carica i dati nella sessione corrente
+    updateActiveSession({
+      name: doc.summary,
+      extractedData: doc.content,
+      status: ProcessingStatus.SUCCESS,
+      frontFile: null, // I file immagini non sono nel DB
+      backFile: null,
+      saveSuccess: true // È già salvato
+    });
+    
+    // Scroll in alto per vedere i dati
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.info("Documento caricato dall'archivio.");
+  };
+
   // Salvataggio su Supabase
   const handleCloudSave = async () => {
     if (!activeSession.extractedData) return;
@@ -298,16 +318,34 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteDoc = async (id: string) => {
-    if (!confirm("Sei sicuro di voler eliminare questo documento dal cloud?")) return;
+  const handleDeleteRequest = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDeletingDocId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingDocId) return;
     try {
-        await deleteDocumentFromDb(id);
-        setSavedDocs(prev => prev.filter(d => d.id !== id));
+        await deleteDocumentFromDb(deletingDocId);
+        setSavedDocs(prev => prev.filter(d => d.id !== deletingDocId));
         toast.info("Documento eliminato.");
-    } catch (e) {
-        toast.error("Errore durante l'eliminazione.");
+    } catch (e: any) {
+        toast.error("Errore durante l'eliminazione: " + e.message);
+    } finally {
+        setDeletingDocId(null);
     }
-  }
+  };
+
+  const handlePrintPdf = () => {
+    if (activeSession.extractedData) {
+        try {
+            generateLegalizationPdf(activeSession.extractedData);
+            toast.success("PDF generato correttamente!");
+        } catch (e) {
+            toast.error("Errore nella generazione del PDF.");
+        }
+    }
+  };
 
   const addNewSession = () => {
     const newSession = createEmptySession(sessions.length);
@@ -589,21 +627,28 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {activeSession.status === ProcessingStatus.SUCCESS && activeSession.extractedData && activeSession.frontFile && (
+          {activeSession.status === ProcessingStatus.SUCCESS && activeSession.extractedData && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
               
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <ResultPreview file={activeSession.frontFile} label="Fronte" />
+                {activeSession.frontFile ? (
+                   <div className="grid grid-cols-2 gap-4">
+                      <ResultPreview file={activeSession.frontFile} label="Fronte" />
 
-                    {activeSession.backFile ? (
-                       <ResultPreview file={activeSession.backFile} label="Retro" />
-                    ) : (
-                       <div className="border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-300 text-xs text-center p-4">
-                          Nessun Retro
-                       </div>
-                    )}
-                </div>
+                      {activeSession.backFile ? (
+                        <ResultPreview file={activeSession.backFile} label="Retro" />
+                      ) : (
+                        <div className="border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-300 text-xs text-center p-4">
+                            Nessun Retro
+                        </div>
+                      )}
+                  </div>
+                ) : (
+                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 text-center text-blue-800 text-sm">
+                      <p className="font-semibold">Visualizzazione Archivio</p>
+                      <p>I file originali non sono disponibili nel cloud per risparmiare spazio, ma puoi modificare e riutilizzare i dati estratti.</p>
+                   </div>
+                )}
                 
                 <button 
                   onClick={handleResetSession}
@@ -628,11 +673,11 @@ const App: React.FC = () => {
                   onChange={handleFormChange} 
                 />
                 
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <button 
                     onClick={handleCloudSave}
                     disabled={isSaving || activeSession.saveSuccess}
-                    className={`flex-1 py-3 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 font-semibold ${
+                    className={`flex-1 py-3 px-2 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 font-semibold text-sm ${
                       activeSession.saveSuccess 
                       ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'
                       : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
@@ -642,20 +687,27 @@ const App: React.FC = () => {
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : activeSession.saveSuccess ? (
                         <>
-                            <CheckCircle2 className="w-5 h-5" /> Salvato nel Cloud
+                            <CheckCircle2 className="w-4 h-4" /> Salvato
                         </>
                     ) : (
                         <>
-                            <Cloud className="w-5 h-5" /> Salva (Cloud)
+                            <Cloud className="w-4 h-4" /> Salva (Cloud)
                         </>
                     )}
+                  </button>
+                  
+                  <button 
+                    onClick={handlePrintPdf}
+                    className="flex-1 py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                  >
+                    <Printer className="w-4 h-4" /> Stampa Modulo
                   </button>
 
                   <button 
                     onClick={() => setIsJotformOpen(true)}
-                    className="flex-1 py-3 bg-orange-500 text-white rounded-lg shadow-md shadow-orange-200 hover:bg-orange-600 transition-all flex items-center justify-center gap-2 font-semibold"
+                    className="flex-1 py-3 px-2 bg-orange-500 text-white rounded-lg shadow-md shadow-orange-200 hover:bg-orange-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
-                    <Send className="w-5 h-5" /> Esporta su JotForm
+                    <Send className="w-4 h-4" /> JotForm
                   </button>
                 </div>
               </div>
@@ -700,9 +752,13 @@ const App: React.FC = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredDocs.map((doc) => (
-                    <div key={doc.id} className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow">
+                    <div 
+                      key={doc.id} 
+                      onClick={() => handleLoadDoc(doc)}
+                      className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300 group"
+                    >
                       <div>
-                        <div className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <div className="text-sm font-semibold text-slate-800 flex items-center gap-2 group-hover:text-blue-700">
                             <Cloud className="w-3 h-3 text-blue-600" /> {doc.summary}
                         </div>
                         <div className="text-xs text-slate-400 mt-1">
@@ -710,8 +766,8 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       <button 
-                        onClick={() => handleDeleteDoc(doc.id)}
-                        className="bg-slate-50 p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        onClick={(e) => handleDeleteRequest(doc.id, e)}
+                        className="bg-slate-50 p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors z-10"
                         title="Elimina"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -724,6 +780,37 @@ const App: React.FC = () => {
         )}
 
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deletingDocId && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 animate-fade-in" onClick={() => setDeletingDocId(null)}>
+            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 text-red-600 mb-4">
+                    <div className="bg-red-100 p-2 rounded-full">
+                        <Trash2 className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Elimina Documento</h3>
+                </div>
+                <p className="text-slate-600 mb-6">
+                    Sei sicuro di voler eliminare definitivamente questo documento dall'archivio? Questa azione non può essere annullata.
+                </p>
+                <div className="flex justify-end gap-3">
+                    <button 
+                        onClick={() => setDeletingDocId(null)}
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                    >
+                        Annulla
+                    </button>
+                    <button 
+                        onClick={confirmDelete}
+                        className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-colors shadow-sm"
+                    >
+                        Elimina
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
 
       {/* Jotform Modal */}
       {activeSession.extractedData && (

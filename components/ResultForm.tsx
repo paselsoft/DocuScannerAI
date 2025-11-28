@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExtractedData } from '../types';
-import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Edit3, Copy, Check, AlertTriangle } from 'lucide-react';
+import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Edit3, Copy, Check, AlertTriangle, CalendarCheck } from 'lucide-react';
 
 interface ResultFormProps {
   data: ExtractedData;
@@ -155,7 +155,17 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           className="font-mono"
         />
 
-         <FieldInput 
+        <FieldInput 
+          label="Data Rilascio"
+          icon={CalendarCheck}
+          value={data.data_rilascio}
+          onChange={handleChange('data_rilascio')}
+          placeholder="GG/MM/AAAA"
+          validate={Validators.date}
+          warningMessage="Formato atteso: GG/MM/AAAA"
+        />
+
+        <FieldInput 
           label="Data Scadenza"
           icon={Calendar}
           value={data.data_scadenza}

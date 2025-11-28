@@ -6,8 +6,9 @@ import { ScanFace, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 export const AuthForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // Pre-fill credentials for testing
+  const [email, setEmail] = useState('paselsoft@gmail.com');
+  const [password, setPassword] = useState('voodoo67');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -46,9 +46,11 @@ export const extractDataFromDocument = async (
       
       Regole di estrazione:
       - Cerca indirizzo e residenza anche sul retro se presente.
-      - Cerca il numero identificativo del documento e la data di scadenza.
+      - Cerca il numero identificativo del documento.
+      - Cerca la Data di Scadenza (spesso indicata come 4b sulla patente).
+      - Cerca la Data di Rilascio (spesso indicata come 4a sulla patente o "Rilasciata il" sulla Carta d'Identità).
       - Se un campo non è leggibile o presente in nessuna delle immagini, lascia la stringa vuota.
-      - Formatta le date come GG/MM/AAAA.
+      - Formatta tutte le date come GG/MM/AAAA.
       - Separa l'indirizzo dalla città.
       - Normalizza i testi (es. rimuovi "NATO A", "RESIDENTE IN").
       - Se l'immagine non è un documento valido, restituisci campi vuoti.`
@@ -73,6 +75,7 @@ export const extractDataFromDocument = async (
             codice_fiscale: { type: Type.STRING, description: "Codice Fiscale se presente" },
             numero_documento: { type: Type.STRING, description: "Numero del documento (es. CA00000AA per CI, U1V... per Patente)" },
             data_scadenza: { type: Type.STRING, description: "Data di scadenza del documento in formato GG/MM/AAAA" },
+            data_rilascio: { type: Type.STRING, description: "Data di rilascio del documento (es. campo 4a patente) in formato GG/MM/AAAA" },
             tipo_documento: { type: Type.STRING, description: "Il tipo di documento: Carta d'Identità, Patente di Guida, Tessera Sanitaria, Passaporto, o Altro" }
           },
           required: ["cognome", "nome", "data_nascita", "luogo_nascita", "tipo_documento"]

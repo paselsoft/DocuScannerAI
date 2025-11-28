@@ -18,7 +18,8 @@ const DEFAULT_MAPPINGS = {
   citta_residenza: 'input_8',
   codice_fiscale: 'input_9',
   numero_documento: 'input_10',
-  data_scadenza: 'input_11'
+  data_scadenza: 'input_11',
+  data_rilascio: 'input_12'
 };
 
 const EMPTY_CONFIG: JotformConfig = {
@@ -136,6 +137,7 @@ export const JotformModal: React.FC<JotformModalProps> = ({ isOpen, onClose, dat
     if (data.codice_fiscale && m.codice_fiscale) params.append(m.codice_fiscale, data.codice_fiscale);
     if (data.numero_documento && m.numero_documento) params.append(m.numero_documento, data.numero_documento);
     if (data.data_scadenza && m.data_scadenza) params.append(m.data_scadenza, data.data_scadenza);
+    if (data.data_rilascio && m.data_rilascio) params.append(m.data_rilascio, data.data_rilascio);
 
     const url = `https://form.jotform.com/${config.formId}?${params.toString()}`;
     window.open(url, '_blank');
