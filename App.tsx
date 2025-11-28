@@ -9,6 +9,7 @@ import { fileToBase64 } from './services/utils';
 import { encryptAndSave, getStoredDocsList, EncryptedDocument } from './services/security';
 import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
 import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send } from 'lucide-react';
+import { ToastContainer, toast } from 'react-toastify';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -67,6 +68,7 @@ const App: React.FC = () => {
     }
 
     if (error && validFiles.length === 0) {
+      toast.error(error);
       updateActiveSession({ errorMsg: error });
       return;
     }
@@ -131,15 +133,18 @@ const App: React.FC = () => {
         });
 
         setSessions(prev => [...prev, ...newSessions]);
+        toast.success(`${newSessions.length} nuovi documenti aggiunti.`);
       }
 
     } catch (e) {
+      toast.error("Errore nella lettura dei file.");
       updateActiveSession({ errorMsg: "Errore nella lettura dei file." });
     }
   };
 
   const handleAnalyze = async () => {
     if (!activeSession.frontFile) {
+      toast.warn("Carica almeno il fronte del documento.");
       updateActiveSession({ errorMsg: "Carica almeno il fronte del documento." });
       return;
     }
@@ -162,9 +167,11 @@ const App: React.FC = () => {
         extractedData: data, 
         status: ProcessingStatus.SUCCESS 
       });
+      toast.success("Dati estratti con successo!");
 
     } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Impossibile analizzare il documento.");
       updateActiveSession({ 
         status: ProcessingStatus.ERROR, 
         errorMsg: err.message || "Impossibile analizzare il documento." 
@@ -202,9 +209,10 @@ const App: React.FC = () => {
       await encryptAndSave(activeSession.extractedData);
       setSavedDocs(getStoredDocsList());
       updateActiveSession({ saveSuccess: true });
+      toast.success("Dati salvati nel Vault in sicurezza.");
       setTimeout(() => updateActiveSession({ saveSuccess: false }), 3000);
     } catch (e) {
-      alert("Errore durante il salvataggio sicuro.");
+      toast.error("Errore durante il salvataggio sicuro.");
     } finally {
       setIsSaving(false);
     }
@@ -496,6 +504,9 @@ const App: React.FC = () => {
           data={activeSession.extractedData} 
         />
       )}
+
+      {/* Global Toast Notifications */}
+      <ToastContainer position="bottom-right" theme="colored" autoClose={3000} />
     </div>
   );
 };
