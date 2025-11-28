@@ -8,7 +8,7 @@ import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
 import { encryptAndSave, getStoredDocsList, EncryptedDocument } from './services/security';
 import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Lock, History, ScanSearch, Plus, X, FileText, Send, Pencil } from 'lucide-react';
 import { ToastContainer, toast } from 'react-toastify';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -32,6 +32,10 @@ const App: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isJotformOpen, setIsJotformOpen] = useState(false);
 
+  // Stati per la rinomina della sessione
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [tempName, setTempName] = useState("");
+
   // Recupera la sessione attiva
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
 
@@ -44,6 +48,31 @@ const App: React.FC = () => {
     setSessions(prev => prev.map(s => 
       s.id === activeSessionId ? { ...s, ...updates } : s
     ));
+  };
+
+  // Funzioni per rinominare la sessione
+  const startRenaming = (session: DocumentSession, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenamingId(session.id);
+    setTempName(session.name);
+  };
+
+  const handleRenameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempName(e.target.value);
+  };
+
+  const handleRenameSubmit = () => {
+    if (renamingId && tempName.trim()) {
+      setSessions(prev => prev.map(s => 
+        s.id === renamingId ? { ...s, name: tempName.trim() } : s
+      ));
+    }
+    setRenamingId(null);
+  };
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleRenameSubmit();
+    if (e.key === 'Escape') setRenamingId(null);
   };
 
   const validateFile = (file: File): string | null => {
@@ -269,14 +298,32 @@ const App: React.FC = () => {
               key={session.id}
               onClick={() => setActiveSessionId(session.id)}
               className={`
-                group relative flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 cursor-pointer transition-all whitespace-nowrap min-w-[150px]
+                group relative flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 cursor-pointer transition-all whitespace-nowrap min-w-[160px] max-w-[280px]
                 ${activeSessionId === session.id 
                   ? 'bg-white border-blue-600 text-blue-700 shadow-sm' 
                   : 'bg-slate-100 border-transparent text-slate-500 hover:bg-slate-200'}
               `}
             >
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold">{session.name}</span>
+              <div 
+                className="flex flex-col flex-grow min-w-0" 
+                onDoubleClick={(e) => startRenaming(session, e)}
+                title="Doppio click per rinominare"
+              >
+                {renamingId === session.id ? (
+                  <input 
+                    type="text"
+                    value={tempName}
+                    onChange={handleRenameChange}
+                    onBlur={handleRenameSubmit}
+                    onKeyDown={handleRenameKeyDown}
+                    onClick={(e) => e.stopPropagation()}
+                    autoFocus
+                    className="text-sm font-semibold bg-white border border-blue-400 rounded px-1 -ml-1 text-slate-900 w-full outline-none shadow-sm"
+                  />
+                ) : (
+                  <span className="text-sm font-semibold truncate pr-2">{session.name}</span>
+                )}
+                
                 <span className="text-[10px] uppercase tracking-wider opacity-75">
                   {session.status === ProcessingStatus.SUCCESS ? 'Completato' : 
                    session.status === ProcessingStatus.PROCESSING ? 'Analisi...' : 
@@ -284,13 +331,25 @@ const App: React.FC = () => {
                 </span>
               </div>
               
-              <div className="ml-auto flex items-center gap-1">
+              <div className="ml-2 flex items-center gap-1 flex-shrink-0">
+                 {/* Rename button only for active session */}
+                 {activeSessionId === session.id && renamingId !== session.id && (
+                    <button
+                        onClick={(e) => startRenaming(session, e)}
+                        className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
+                        title="Rinomina"
+                    >
+                        <Pencil className="w-3 h-3" />
+                    </button>
+                 )}
+
                  {session.saveSuccess && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                  {session.status === ProcessingStatus.ERROR && <AlertCircle className="w-4 h-4 text-red-500" />}
                  
                  <button 
                    onClick={(e) => removeSession(e, session.id)}
                    className="p-1 rounded-full hover:bg-slate-300 text-slate-400 hover:text-red-500 transition-colors ml-1"
+                   title="Chiudi sessione"
                  >
                    <X className="w-3 h-3" />
                  </button>
