@@ -89,8 +89,8 @@ function App() {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        // Avvia sincronizzazione chiavi
-        await syncMasterKey();
+        // Avvia sincronizzazione chiavi usando l'utente già recuperato
+        await syncMasterKey(session.user);
         setIsSecurityReady(true);
       } else {
         setIsSecurityReady(true); // Se non loggato, la sicurezza è "pronta" (non serve)
@@ -101,13 +101,18 @@ function App() {
 
     initApp();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) {
+      
+      // FIX: Eseguiamo la sync pesante SOLO se l'utente ha appena fatto Login esplicito.
+      // Ignoriamo TOKEN_REFRESHED e INITIAL_SESSION (gestito da initApp) per evitare loop di loading.
+      if (event === 'SIGNED_IN' && session?.user) {
           setLoadingAuth(true);
-          await syncMasterKey();
+          await syncMasterKey(session.user);
           setIsSecurityReady(true);
           setLoadingAuth(false);
+      } else if (event === 'SIGNED_OUT') {
+          setIsSecurityReady(false);
       }
     });
 

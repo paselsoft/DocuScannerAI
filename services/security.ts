@@ -29,9 +29,17 @@ function base64ToBuffer(base64: string): Uint8Array {
 }
 
 // Funzione principale per SINCRONIZZARE la chiave tra LocalStorage e Cloud (Supabase)
-export const syncMasterKey = async (): Promise<boolean> => {
+// Accetta opzionalmente l'oggetto utente per evitare chiamate getUser() ridondanti
+export const syncMasterKey = async (currentUser?: any): Promise<boolean> => {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        let user = currentUser;
+        
+        // Se l'utente non è stato passato, lo recuperiamo
+        if (!user) {
+             const { data } = await supabase.auth.getUser();
+             user = data.user;
+        }
+        
         if (!user) return false;
 
         // 1. Cerchiamo se c'è una chiave nel Cloud
