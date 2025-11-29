@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ExtractedData } from '../types';
 import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck, Users } from 'lucide-react';
@@ -6,7 +5,7 @@ import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, 
 interface ResultFormProps {
   data: ExtractedData;
   onChange: (field: keyof ExtractedData, value: string) => void;
-  sessions?: any[]; // Opzionale per compatibilità
+  sessions?: any[];
   activeSessionId?: string;
   setActiveSessionId?: (id: string) => void;
 }
@@ -28,7 +27,6 @@ const Validators = {
 
 // Helper per formattazione automatica
 const Formatters = {
-  // Converte 01012000 in 01/01/2000
   date: (val: string) => {
     const cleaned = val.replace(/\D/g, '');
     let formatted = cleaned;
@@ -40,11 +38,8 @@ const Formatters = {
     }
     return formatted.substring(0, 10);
   },
-  // Forza Maiuscolo
   upper: (val: string) => val.toUpperCase(),
-  // CF: Max 16 e Maiuscolo
   cf: (val: string) => val.toUpperCase().substring(0, 16),
-  // Sesso: Max 1 e Maiuscolo
   gender: (val: string) => val.toUpperCase().substring(0, 1)
 };
 
@@ -65,29 +60,25 @@ export const ResultForm: React.FC<ResultFormProps> = ({
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedType = e.target.value;
-    
-    // Cerca se esiste già una sessione con questo tipo di documento
     const existingSession = sessions.find(s => 
       s.id !== activeSessionId && 
       s.extractedData?.tipo_documento === selectedType
     );
 
     if (existingSession && setActiveSessionId) {
-      // Se esiste, naviga a quella sessione
       setActiveSessionId(existingSession.id);
     } else {
-      // Altrimenti aggiorna il tipo del documento corrente
       onChange('tipo_documento', selectedType);
     }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden group">
-      <div className="bg-slate-50 px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-          <FileBadge className="w-5 h-5 text-blue-600" />
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group transition-colors">
+      <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <h2 className="font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+          <FileBadge className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           Dati Estratti
-          <span className="text-xs font-normal text-slate-400 ml-2 flex items-center gap-1">
+          <span className="text-xs font-normal text-slate-400 dark:text-slate-500 ml-2 flex items-center gap-1">
             <Pencil className="w-3 h-3" /> Modificabili
           </span>
         </h2>
@@ -96,7 +87,7 @@ export const ResultForm: React.FC<ResultFormProps> = ({
             <select
               value={data.tipo_documento || ''}
               onChange={handleTypeChange}
-              className="appearance-none bg-white text-slate-700 font-medium text-sm pl-3 pr-10 py-2 rounded-lg border border-slate-300 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all w-full md:w-auto shadow-sm"
+              className="appearance-none bg-white dark:bg-slate-800 text-slate-700 dark:text-white font-medium text-sm pl-3 pr-10 py-2 rounded-lg border border-slate-300 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all w-full md:w-auto shadow-sm"
               title="Modifica tipo documento o vai a documento esistente"
             >
               <option value="" disabled>Seleziona tipo...</option>
@@ -109,7 +100,7 @@ export const ResultForm: React.FC<ResultFormProps> = ({
                  );
               })}
             </select>
-            <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
       
@@ -264,10 +255,10 @@ const FieldInput: React.FC<FieldInputProps> = ({
 
   return (
     <div className="space-y-1 relative group/field">
-      <label className="text-xs font-medium text-slate-500 uppercase tracking-wider flex items-center gap-1 justify-between">
+      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 justify-between">
         <span className="flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</span>
         {showWarning && (
-            <span className="text-[10px] text-orange-600 flex items-center gap-1 animate-pulse">
+            <span className="text-[10px] text-orange-600 dark:text-orange-400 flex items-center gap-1 animate-pulse">
                 <AlertTriangle className="w-3 h-3" /> {warningMessage || 'Formato non valido'}
             </span>
         )}
@@ -280,15 +271,15 @@ const FieldInput: React.FC<FieldInputProps> = ({
             placeholder={placeholder}
             maxLength={maxLength}
             className={`
-                w-full pl-3 pr-10 py-2 bg-white border rounded-lg outline-none transition-all text-slate-900 placeholder-slate-400
+                w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-900 border rounded-lg outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                ${showWarning ? 'border-orange-300 bg-orange-50 focus:border-orange-500' : 'border-slate-300'}
+                ${showWarning ? 'border-orange-300 dark:border-orange-500 bg-orange-50 dark:bg-orange-900/20 focus:border-orange-500' : 'border-slate-300 dark:border-slate-600'}
                 ${className}
             `}
         />
         <button
             onClick={handleCopy}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-600 p-1 rounded-md hover:bg-slate-100 transition-colors"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             title="Copia"
         >
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}

@@ -60,6 +60,14 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [isSupabaseReady, setIsSupabaseReady] = useState(isConfigured());
   const [isSecurityReady, setIsSecurityReady] = useState(false); // Nuovo stato per la sync delle chiavi
+  
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage or system preference
+    const saved = localStorage.getItem('docuscanner_theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
   // Config states
   const [configUrl, setConfigUrl] = useState('');
@@ -83,6 +91,19 @@ function App() {
   // Session Renaming
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState("");
+
+  // Apply Theme Effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('docuscanner_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('docuscanner_theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => setIsDarkMode(!isDarkMode);
 
   // Auth & Security Check
   useEffect(() => {
@@ -676,9 +697,9 @@ function App() {
   // --- Main Render ---
   if (loadingAuth || (user && !isSecurityReady)) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-600"/>
-        <div className="flex items-center gap-2 text-slate-600 font-medium animate-pulse">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600 dark:text-blue-400"/>
+        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium animate-pulse">
            <ShieldCheck className="w-5 h-5 text-emerald-500" />
            <span>Sincronizzazione sicurezza in corso...</span>
         </div>
@@ -758,8 +779,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <Header />
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
+      <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
 
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
@@ -772,8 +793,8 @@ function App() {
               className={`
                 group relative flex items-center gap-2 px-4 py-2 rounded-t-lg border-b-2 cursor-pointer transition-all whitespace-nowrap min-w-[160px] max-w-[280px]
                 ${activeSessionId === session.id 
-                  ? 'bg-white border-blue-600 text-blue-700 shadow-sm' 
-                  : 'bg-slate-100 border-transparent text-slate-500 hover:bg-slate-200'}
+                  ? 'bg-white dark:bg-slate-800 border-blue-600 text-blue-700 dark:text-blue-400 shadow-sm' 
+                  : 'bg-slate-100 dark:bg-slate-800/50 border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800'}
               `}
             >
               <div 
@@ -790,7 +811,7 @@ function App() {
                     onKeyDown={handleRenameKeyDown}
                     onClick={(e) => e.stopPropagation()}
                     autoFocus
-                    className="text-sm font-semibold bg-white border border-blue-400 rounded px-1 -ml-1 text-slate-900 w-full outline-none shadow-sm"
+                    className="text-sm font-semibold bg-white dark:bg-slate-700 border border-blue-400 rounded px-1 -ml-1 text-slate-900 dark:text-white w-full outline-none shadow-sm"
                   />
                 ) : (
                   <span className="text-sm font-semibold truncate pr-2">{session.name}</span>
@@ -807,7 +828,7 @@ function App() {
                  {activeSessionId === session.id && renamingId !== session.id && (
                     <button
                         onClick={(e) => startRenaming(session, e)}
-                        className="p-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-blue-600 transition-colors"
+                        className="p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 transition-colors"
                         title="Rinomina"
                     >
                         <Pencil className="w-3 h-3" />
@@ -819,7 +840,7 @@ function App() {
                  
                  <button 
                    onClick={(e) => removeSession(e, session.id)}
-                   className="p-1 rounded-full hover:bg-slate-300 text-slate-400 hover:text-red-500 transition-colors ml-1"
+                   className="p-1 rounded-full hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 transition-colors ml-1"
                    title="Chiudi sessione"
                  >
                    <X className="w-3 h-3" />
@@ -830,7 +851,7 @@ function App() {
           
           <button
             onClick={addNewSession}
-            className="flex items-center justify-center p-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-600 transition-colors"
+            className="flex items-center justify-center p-2 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 transition-colors"
             title="Aggiungi Documento"
           >
             <Plus className="w-5 h-5" />
@@ -843,16 +864,16 @@ function App() {
           {activeSession.status === ProcessingStatus.IDLE && (
             <div className="max-w-4xl mx-auto space-y-8">
               <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold text-slate-900">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                    Carica {activeSession.name}
                 </h2>
-                <p className="text-slate-600">
+                <p className="text-slate-600 dark:text-slate-400">
                   Trascina uno o più file (Immagini, HEIC o PDF) per iniziare.
                 </p>
               </div>
               
               {activeSession.errorMsg && (
-                <div className="bg-red-50 p-4 rounded-lg border border-red-200 flex items-center gap-3 text-red-700 max-w-2xl mx-auto">
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800 flex items-center gap-3 text-red-700 dark:text-red-300 max-w-2xl mx-auto">
                   <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   <span className="text-sm font-medium">{activeSession.errorMsg}</span>
                 </div>
@@ -876,7 +897,7 @@ function App() {
                     flex items-center gap-3 px-8 py-4 rounded-full text-lg font-semibold shadow-lg transition-all
                     ${activeSession.frontFile 
                       ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-200 hover:scale-105 cursor-pointer' 
-                      : 'bg-slate-200 text-slate-400 cursor-not-allowed'}
+                      : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'}
                   `}
                 >
                   <ScanSearch className="w-6 h-6" />
@@ -889,30 +910,30 @@ function App() {
           {activeSession.status === ProcessingStatus.PROCESSING && (
             <div className="flex flex-col items-center justify-center h-[50vh] space-y-6">
               <div className="relative">
-                <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
+                <div className="w-16 h-16 border-4 border-blue-100 dark:border-blue-900 border-t-blue-600 dark:border-t-blue-500 rounded-full animate-spin"></div>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <Sparkles className="w-6 h-6 text-blue-600 animate-pulse" />
+                  <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-500 animate-pulse" />
                 </div>
               </div>
               <div className="text-center space-y-2">
-                <h3 className="text-xl font-semibold text-slate-800">Analisi di {activeSession.name} in corso...</h3>
-                <p className="text-slate-500">L'intelligenza artificiale sta estraendo i dati.</p>
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200">Analisi di {activeSession.name} in corso...</h3>
+                <p className="text-slate-500 dark:text-slate-400">L'intelligenza artificiale sta estraendo i dati.</p>
               </div>
             </div>
           )}
 
           {activeSession.status === ProcessingStatus.ERROR && (
-            <div className="max-w-xl mx-auto mt-12 bg-white p-8 rounded-xl shadow-sm border border-red-100 text-center space-y-4">
-              <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+            <div className="max-w-xl mx-auto mt-12 bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm border border-red-100 dark:border-red-900/50 text-center space-y-4">
+              <div className="bg-red-50 dark:bg-red-900/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900">Errore su {activeSession.name}</h3>
-              <div className="bg-red-50 p-3 rounded-lg text-red-700 text-sm font-medium border border-red-100 inline-block px-6">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Errore su {activeSession.name}</h3>
+              <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-red-700 dark:text-red-300 text-sm font-medium border border-red-100 dark:border-red-800 inline-block px-6">
                 {activeSession.errorMsg}
               </div>
               <button 
                 onClick={() => updateActiveSession({ status: ProcessingStatus.IDLE })}
-                className="mt-4 px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors inline-flex items-center gap-2"
+                className="mt-4 px-6 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors inline-flex items-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" /> Riprova
               </button>
@@ -930,13 +951,13 @@ function App() {
                       {activeSession.backFile ? (
                         <ResultPreview file={activeSession.backFile} label="Retro" />
                       ) : (
-                        <div className="border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-300 text-xs text-center p-4">
+                        <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center text-slate-300 dark:text-slate-600 text-xs text-center p-4">
                             Nessun Retro
                         </div>
                       )}
                   </div>
                 ) : (
-                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-6 text-center text-blue-800 text-sm">
+                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-6 text-center text-blue-800 dark:text-blue-300 text-sm">
                       <p className="font-semibold">Visualizzazione Archivio</p>
                       <p>I file originali non sono disponibili nel cloud per risparmiare spazio, ma puoi modificare e riutilizzare i dati estratti.</p>
                    </div>
@@ -944,7 +965,7 @@ function App() {
                 
                 <button 
                   onClick={handleResetSession}
-                  className="w-full py-3 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-slate-900 transition-colors flex items-center justify-center gap-2 font-medium"
+                  className="w-full py-3 border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors flex items-center justify-center gap-2 font-medium"
                 >
                   <RefreshCw className="w-4 h-4" /> Resetta Documento
                 </button>
@@ -953,10 +974,10 @@ function App() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className="bg-green-100 p-1 rounded-full">
-                          <CheckCircle className="w-4 h-4 text-green-600" />
+                      <div className="bg-green-100 dark:bg-green-900/30 p-1 rounded-full">
+                          <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                       </div>
-                      <span className="text-sm font-medium text-green-700">Dati {activeSession.name}</span>
+                      <span className="text-sm font-medium text-green-700 dark:text-green-400">Dati {activeSession.name}</span>
                     </div>
                 </div>
                 
@@ -974,8 +995,8 @@ function App() {
                     disabled={isSaving || activeSession.saveSuccess}
                     className={`flex-1 min-w-[140px] py-3 px-2 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 font-semibold text-sm ${
                       activeSession.saveSuccess 
-                      ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'
-                      : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
+                      ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-200 dark:shadow-none'
+                      : 'bg-slate-900 dark:bg-slate-700 text-white hover:bg-slate-800 dark:hover:bg-slate-600 shadow-slate-200 dark:shadow-none'
                     }`}
                   >
                     {isSaving ? (
@@ -995,7 +1016,7 @@ function App() {
                   {(activeSession.frontFile || activeSession.extractedData) && (
                     <button
                       onClick={() => setIsChatOpen(true)}
-                      className="flex-1 min-w-[140px] py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                      className="flex-1 min-w-[140px] py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                     >
                       <MessageSquareText className="w-4 h-4" /> Chiedi AI
                     </button>
@@ -1005,7 +1026,7 @@ function App() {
                   {navigator.canShare && (
                       <button 
                         onClick={handleNativeShare}
-                        className="flex-1 min-w-[140px] py-3 px-2 bg-pink-600 text-white rounded-lg shadow-md shadow-pink-200 hover:bg-pink-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                        className="flex-1 min-w-[140px] py-3 px-2 bg-pink-600 text-white rounded-lg shadow-md shadow-pink-200 dark:shadow-none hover:bg-pink-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                       >
                         <Share2 className="w-4 h-4" /> Condividi
                       </button>
@@ -1013,21 +1034,21 @@ function App() {
 
                   <button 
                     onClick={handlePrintPdf}
-                    className="flex-1 min-w-[140px] py-3 px-2 bg-blue-500 text-white rounded-lg shadow-md shadow-blue-200 hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-blue-500 text-white rounded-lg shadow-md shadow-blue-200 dark:shadow-none hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
                     <Printer className="w-4 h-4" /> Stampa
                   </button>
 
                   <button 
                     onClick={handleCsvExport}
-                    className="flex-1 min-w-[140px] py-3 px-2 bg-emerald-600 text-white rounded-lg shadow-md shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-emerald-600 text-white rounded-lg shadow-md shadow-emerald-200 dark:shadow-none hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
                     <FileSpreadsheet className="w-4 h-4" /> CSV
                   </button>
 
                   <button 
                     onClick={() => setIsJotformOpen(true)}
-                    className="flex-1 min-w-[140px] py-3 px-2 bg-orange-500 text-white rounded-lg shadow-md shadow-orange-200 hover:bg-orange-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-orange-500 text-white rounded-lg shadow-md shadow-orange-200 dark:shadow-none hover:bg-orange-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
                     <Send className="w-4 h-4" /> JotForm
                   </button>
@@ -1039,14 +1060,14 @@ function App() {
 
         {/* Global Vault Summary */}
         {savedDocs.length > 0 && (
-          <div className="mt-16 pt-8 border-t border-slate-200">
+          <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <History className="w-5 h-5 text-blue-600" />
+                  <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                    <History className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="font-semibold text-lg text-slate-900">Archivio Cloud</h3>
-                  <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{savedDocs.length}</span>
+                  <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Archivio Cloud</h3>
+                  <span className="text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 rounded-full">{savedDocs.length}</span>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -1058,31 +1079,31 @@ function App() {
                         placeholder="Cerca nome, CF, città..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-8 py-1.5 bg-white text-slate-900 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                        className="w-full pl-9 pr-8 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 dark:focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
                       />
                       {searchQuery && (
                         <button 
                           onClick={() => setSearchQuery("")}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700"
                         >
                            <X className="w-3 h-3" />
                         </button>
                       )}
                   </div>
 
-                  <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+                  <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
 
                   <div className="flex items-center gap-3">
                     <div className="relative group">
-                        <button className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+                        <button className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                         <ArrowUpDown className="w-3 h-3" />
                         {sortOrder === 'newest' ? 'Più recenti' : sortOrder === 'oldest' ? 'Meno recenti' : sortOrder === 'expiration' ? 'Per scadenza' : 'Per tipo'}
                         </button>
-                        <div className="absolute right-0 top-full mt-1 bg-white border border-slate-100 shadow-lg rounded-lg py-1 w-36 hidden group-hover:block z-20">
-                        <button onClick={() => setSortOrder('newest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Più recenti</button>
-                        <button onClick={() => setSortOrder('oldest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Meno recenti</button>
-                        <button onClick={() => setSortOrder('expiration')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700 flex justify-between items-center">Per scadenza <CalendarClock className="w-3 h-3 text-slate-400"/></button>
-                        <button onClick={() => setSortOrder('type')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Per tipo</button>
+                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-lg rounded-lg py-1 w-36 hidden group-hover:block z-20">
+                        <button onClick={() => setSortOrder('newest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">Più recenti</button>
+                        <button onClick={() => setSortOrder('oldest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">Meno recenti</button>
+                        <button onClick={() => setSortOrder('expiration')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex justify-between items-center">Per scadenza <CalendarClock className="w-3 h-3 text-slate-400"/></button>
+                        <button onClick={() => setSortOrder('type')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">Per tipo</button>
                         </div>
                     </div>
 
@@ -1094,8 +1115,8 @@ function App() {
                             className={`
                             text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors border
                             ${vaultFilter === filter 
-                                ? 'bg-slate-800 text-white border-slate-800' 
-                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}
+                                ? 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 border-slate-800 dark:border-white' 
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'}
                             `}
                         >
                             {filter}
@@ -1107,8 +1128,8 @@ function App() {
               </div>
 
               {sortedDocs.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                   <p className="text-slate-500 text-sm">
+                <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                   <p className="text-slate-500 dark:text-slate-400 text-sm">
                        {searchQuery 
                          ? `Nessun risultato per "${searchQuery}"`
                          : `Nessun documento trovato per "${vaultFilter}"`}
@@ -1122,22 +1143,22 @@ function App() {
                     return (
                       <div 
                         key={savedDoc.id} 
-                        className={`bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-all group relative ${savedDoc.is_error ? 'border-red-200 bg-red-50/20' : 'border-slate-200'}`}
+                        className={`bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm hover:shadow-md transition-all group relative ${savedDoc.is_error ? 'border-red-200 dark:border-red-900 bg-red-50/20' : 'border-slate-200 dark:border-slate-700'}`}
                       >
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2">
-                            <div className={`p-2 rounded-lg ${savedDoc.is_error ? 'bg-red-50 text-red-500' : savedDoc.is_encrypted ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                            <div className={`p-2 rounded-lg ${savedDoc.is_error ? 'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400' : savedDoc.is_encrypted ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
                                 {savedDoc.is_error ? <AlertCircle className="w-4 h-4" /> : savedDoc.is_encrypted ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                             </div>
                             <div>
-                                <p className={`text-xs font-medium ${savedDoc.is_error ? 'text-red-400' : 'text-slate-400'}`}>{savedDoc.doc_type || 'Sconosciuto'}</p>
-                                <p className="text-xs text-slate-300">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
+                                <p className={`text-xs font-medium ${savedDoc.is_error ? 'text-red-400' : 'text-slate-400 dark:text-slate-500'}`}>{savedDoc.doc_type || 'Sconosciuto'}</p>
+                                <p className="text-xs text-slate-300 dark:text-slate-600">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
                             </div>
                           </div>
                           <div className="flex gap-1">
                             <button 
                               onClick={() => setPreviewDoc(savedDoc)}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                               title="Anteprima rapida"
                               disabled={savedDoc.is_error}
                             >
@@ -1145,7 +1166,7 @@ function App() {
                             </button>
                             <button 
                               onClick={() => setDocToDelete(savedDoc.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                               title="Elimina"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1153,7 +1174,7 @@ function App() {
                           </div>
                         </div>
                         
-                        <h4 className={`font-semibold text-sm mb-3 truncate ${savedDoc.is_error ? 'text-red-600' : 'text-slate-800'}`} title={String(savedDoc.summary)}>
+                        <h4 className={`font-semibold text-sm mb-3 truncate ${savedDoc.is_error ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white'}`} title={String(savedDoc.summary)}>
                           {String(savedDoc.summary)}
                         </h4>
                         
@@ -1167,9 +1188,9 @@ function App() {
                                     {expiryInfo.status === 'warning' && <CalendarClock className="w-3 h-3" />}
                                     {expiryInfo.label}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-mono">{savedDoc.content.data_scadenza}</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{savedDoc.content.data_scadenza}</span>
                               </div>
-                              <div className="w-full bg-slate-100 rounded-full h-1.5">
+                              <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-1.5">
                                 <div 
                                    className={`h-1.5 rounded-full transition-all duration-500 ${
                                      expiryInfo.status === 'valid' ? 'bg-emerald-500' :
@@ -1185,8 +1206,8 @@ function App() {
                           onClick={() => handleLoadDoc(savedDoc)}
                           className={`w-full py-2 text-xs font-semibold rounded-lg transition-colors ${
                             savedDoc.is_error 
-                            ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-not-allowed' 
-                            : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                            ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300 hover:bg-red-200 cursor-not-allowed' 
+                            : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40'
                           }`}
                         >
                           {savedDoc.is_error ? "Illeggibile (Elimina)" : savedDoc.is_encrypted ? "Decifra e Carica" : "Carica nel workspace"}
@@ -1211,7 +1232,6 @@ function App() {
       )}
 
       {/* Chat Modal */}
-      {/* Condizione corretta: mostra modale se il flag è true e abbiamo dati o file */}
       {(activeSession.frontFile || activeSession.extractedData) && (
         <ChatModal
           isOpen={isChatOpen}
@@ -1219,7 +1239,7 @@ function App() {
           sessionName={activeSession.name}
           frontFile={activeSession.frontFile}
           backFile={activeSession.backFile}
-          extractedData={activeSession.extractedData} // Pass extracted data for archive mode
+          extractedData={activeSession.extractedData}
           history={activeSession.chatHistory}
           onUpdateHistory={(newHistory) => updateActiveSession({ chatHistory: newHistory })}
         />
@@ -1231,18 +1251,18 @@ function App() {
       {/* Delete Confirmation Modal */}
       {docToDelete && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-fade-in">
-           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm border border-slate-200">
-              <div className="flex items-center gap-3 text-red-600 mb-4">
+           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 w-full max-w-sm border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 text-red-600 dark:text-red-400 mb-4">
                  <AlertCircle className="w-6 h-6" />
                  <h3 className="text-lg font-bold">Elimina Documento</h3>
               </div>
-              <p className="text-slate-600 text-sm mb-6">
+              <p className="text-slate-600 dark:text-slate-300 text-sm mb-6">
                  Sei sicuro di voler eliminare questo documento dall'archivio cloud? Questa azione non può essere annullata.
               </p>
               <div className="flex justify-end gap-3">
                  <button 
                    onClick={() => setDocToDelete(null)}
-                   className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                   className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm font-medium transition-colors"
                  >
                    Annulla
                  </button>
@@ -1257,15 +1277,15 @@ function App() {
         </div>
       )}
 
-      <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
-         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
+         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400 dark:text-slate-600">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.12.0-beta</p>
+            <p>v0.13.0-beta</p>
          </div>
       </footer>
 
       {/* Global Toast Notifications */}
-      <ToastContainer position="bottom-right" theme="colored" autoClose={3000} />
+      <ToastContainer position="bottom-right" theme={isDarkMode ? 'dark' : 'colored'} autoClose={3000} />
     </div>
   );
 }

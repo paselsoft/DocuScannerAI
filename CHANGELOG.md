@@ -3,6 +3,13 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.13.0-beta] - 2025-02-24
+### Added
+- **Dark Mode (Modalità Scura):** Nuova interfaccia completa in modalità scura, ideale per l'uso notturno.
+    - **Toggle UI:** Pulsante Sole/Luna nell'intestazione per cambiare modalità istantaneamente.
+    - **Adattamento Totale:** Tutti i componenti (Dashboard, Archivio, Form, Chat, Modali) sono stati ridisegnati per garantire leggibilità ottimale sia su sfondo chiaro che scuro.
+    - **Persistenza:** La preferenza viene salvata localmente per le visite future.
+
 ## [0.12.0-beta] - 2025-02-24
 ### Added
 - **Global Search (Ricerca Globale):**

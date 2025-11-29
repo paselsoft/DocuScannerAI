@@ -56,7 +56,6 @@ export const ChatModal: React.FC<ChatModalProps> = ({
     setIsLoading(true);
 
     try {
-      // Prepara gli argomenti per il servizio
       const images = frontFile ? {
           front: { base64: frontFile.base64, mime: frontFile.mimeType },
           back: backFile ? { base64: backFile.base64, mime: backFile.mimeType } : undefined
@@ -92,36 +91,36 @@ export const ChatModal: React.FC<ChatModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[80] flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 flex flex-col h-[600px] max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col h-[600px] max-h-[90vh] transition-colors">
         
         {/* Header */}
-        <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+        <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-100 p-2 rounded-lg">
-              <Bot className="w-5 h-5 text-indigo-600" />
+            <div className="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-lg">
+              <Bot className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-800">Assistente Documento</h3>
-              <div className="flex items-center gap-1 text-xs text-slate-500">
+              <h3 className="font-bold text-slate-800 dark:text-white">Assistente Documento</h3>
+              <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                 {frontFile ? <ImageIcon className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
                 <span className="truncate max-w-[150px]">{sessionName}</span>
-                {!frontFile && <span className="text-[10px] bg-slate-200 px-1 rounded ml-1">Modalità Archivio</span>}
+                {!frontFile && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1 rounded ml-1">Modalità Archivio</span>}
               </div>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-200 rounded-full transition-colors"
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Chat Area */}
-        <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50/50">
+        <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-slate-50/50 dark:bg-slate-950/50">
           {history.length === 0 && (
-            <div className="text-center py-8 px-4 text-slate-500 text-sm">
-              <Bot className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+            <div className="text-center py-8 px-4 text-slate-500 dark:text-slate-400 text-sm">
+              <Bot className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" />
               <p>Ciao! Sono qui per aiutarti.</p>
               <p className="mt-1">
                 {frontFile 
@@ -147,7 +146,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
                 max-w-[80%] rounded-2xl px-4 py-2 text-sm leading-relaxed shadow-sm
                 ${msg.role === 'user' 
                   ? 'bg-blue-600 text-white rounded-tr-none' 
-                  : 'bg-white text-slate-700 border border-slate-200 rounded-tl-none'}
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-tl-none'}
               `}>
                 {msg.text}
               </div>
@@ -159,7 +158,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
               <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0 mt-1">
                  <Bot className="w-4 h-4 text-white" />
               </div>
-              <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
                  <div className="flex gap-1">
                     <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
                     <span className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
@@ -172,7 +171,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-200">
+        <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
           <form onSubmit={handleSend} className="flex gap-2">
             <input
               ref={inputRef}
@@ -180,7 +179,7 @@ export const ChatModal: React.FC<ChatModalProps> = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Fai una domanda sul documento..."
-              className="flex-grow px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
+              className="flex-grow px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm text-slate-900 dark:text-white placeholder:text-slate-400"
               disabled={isLoading}
             />
             <button
