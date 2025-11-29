@@ -3,6 +3,11 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.2.2-beta] - 2025-02-24
+### Stability
+- **Logout Robusto:** Migliorata la procedura di logout con pulizia manuale del LocalStorage per prevenire sessioni fantasma su Cloud Run.
+- **Session Auto-Healing:** Risolto un bug che bloccava l'interfaccia dopo il caricamento di documenti a causa di disallineamenti dell'ID sessione.
+
 ## [0.2.1-beta] - 2025-02-24
 ### Security & Sync
 - **Cloud Key Sync:** Implementata sincronizzazione automatica della chiave di crittografia tramite Supabase (`user_keys`).

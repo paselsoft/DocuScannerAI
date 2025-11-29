@@ -1,6 +1,6 @@
 # DocuScanner AI
 
-**Versione:** 0.2.1-beta
+**Versione:** 0.2.2-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
@@ -33,10 +33,10 @@ Dalla versione **0.2.0**, l'applicazione implementa la crittografia Client-Side:
 
 ## Configurazione Database (Supabase)
 
-Per far funzionare il backend, esegui questo script SQL nel tuo progetto Supabase:
+Per far funzionare il backend e la sincronizzazione delle chiavi, esegui questi script SQL nel tuo progetto Supabase:
 
 ```sql
--- Creazione tabella documenti
+-- 1. Tabella Documenti (Dati cifrati)
 create table documents (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users not null,
@@ -47,12 +47,23 @@ create table documents (
   content jsonb
 );
 
--- Sicurezza (Row Level Security)
 alter table documents enable row level security;
 
 create policy "Users can see own documents" on documents for select using ( auth.uid() = user_id );
 create policy "Users can insert own documents" on documents for insert with check ( auth.uid() = user_id );
 create policy "Users can delete own documents" on documents for delete using ( auth.uid() = user_id );
+
+-- 2. Tabella Chiavi Utente (Sync crittografia)
+create table user_keys (
+  user_id uuid references auth.users not null primary key,
+  master_key text not null,
+  created_at timestamp with time zone default now()
+);
+
+alter table user_keys enable row level security;
+
+create policy "Users can manage own key" on user_keys
+  for all using ( auth.uid() = user_id );
 ```
 
 ## Installazione e Avvio
