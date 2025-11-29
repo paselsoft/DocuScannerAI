@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 // CSS loaded via CDN in index.html to avoid ESM import issues
@@ -607,12 +606,14 @@ function App() {
         } else {
             toast.warn("Il tuo dispositivo non supporta la condivisione di file.");
         }
-    } catch (err) {
-        console.error("Errore condivisione:", err);
+    } catch (err: any) {
         // Ignora AbortError (utente ha chiuso il menu)
-        if ((err as Error).name !== 'AbortError') {
-             toast.error("Impossibile condividere.");
+        if (err.name === 'AbortError') {
+             console.log("Condivisione annullata dall'utente.");
+             return;
         }
+        console.error("Errore condivisione:", err);
+        toast.error("Impossibile condividere.");
     }
   };
 
@@ -1143,7 +1144,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.8.0-beta</p>
+            <p>v0.8.1-beta</p>
          </div>
       </footer>
 

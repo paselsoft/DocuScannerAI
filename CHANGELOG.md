@@ -3,6 +3,10 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.8.1-beta] - 2025-02-24
+### Fixed
+- **Mobile Sharing Fix:** Risolto un "falso positivo" che generava un errore in console quando l'utente annullava manualmente la condivisione nativa su mobile. Ora l'azione viene gestita silenziosamente.
+
 ## [0.8.0-beta] - 2025-02-24
 ### Added
 - **Rotazione Immagini:** Pulsante per ruotare di 90° le immagini caricate direttamente nell'anteprima, ideale per correggere l'orientamento delle foto da mobile.
