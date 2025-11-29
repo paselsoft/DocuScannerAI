@@ -93,7 +93,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
       
       {!frontFile && !backFile && !isDragging && (
         <div className="text-center mt-6 text-slate-400 text-sm">
-           Suggerimento: Puoi trascinare file JPG, PNG o PDF.
+           Suggerimento: Puoi trascinare file JPG, PNG, HEIC o PDF.
         </div>
       )}
     </div>
@@ -184,7 +184,7 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
         type="file" 
         ref={inputRef} 
         onChange={handleChange} 
-        accept="image/jpeg,image/png,image/webp,application/pdf" 
+        accept="image/jpeg,image/png,image/webp,application/pdf,image/heic,image/heic-sequence" 
         multiple
         className="hidden" 
       />
@@ -201,7 +201,7 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
         {label}
       </h3>
       <p className="text-xs text-slate-500 mt-2 max-w-[180px] leading-relaxed">
-        Clicca per selezionare o trascina file (Img/PDF)
+        Clicca per selezionare o trascina file (Img, PDF, HEIC)
       </p>
     </div>
   );

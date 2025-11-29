@@ -2,6 +2,11 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.4.0-beta] - 2025-02-24
+### Added
+- **HEIC Support:** Aggiunta integrazione con la libreria `heic2any`. Ora è possibile caricare direttamente foto in formato `.heic` (standard iPhone/Apple).
+- **Auto-Conversion:** I file HEIC vengono rilevati e convertiti automaticamente in JPEG nel browser prima di essere analizzati, eliminando la necessità di modificare le impostazioni della fotocamera.
+
 ## [0.3.0-beta] - 2025-02-24
 ### Added
 - **Universal Scanner:** Aggiornamento della libreria di scansione da `jsQR` a `@zxing/library`.

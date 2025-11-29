@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 // CSS loaded via CDN in index.html to avoid ESM import issues
@@ -18,7 +19,7 @@ import {
   ExtractedData, FileData, ProcessingStatus, DocumentSession 
 } from './types';
 import { extractDataFromDocument } from './services/geminiService';
-import { fileToBase64 } from './services/utils';
+import { fileToBase64, convertHeicToJpeg } from './services/utils';
 import { supabase, isConfigured, saveSupabaseConfig } from './services/supabaseClient';
 import { 
   saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument 
@@ -250,12 +251,15 @@ function App() {
 
   // --- File Processing ---
   const validateFile = (file: File): string | null => {
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!validTypes.includes(file.type)) {
-      return "Formato file non supportato. Usa JPG, PNG o PDF.";
+    const validTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'application/pdf', 
+      'image/heic', 'image/heic-sequence' // HEIC support
+    ];
+    if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
+      return "Formato file non supportato. Usa JPG, PNG, HEIC o PDF.";
     }
-    if (file.size > 5 * 1024 * 1024) { 
-      return "Il file è troppo grande. Dimensione massima 5MB.";
+    if (file.size > 10 * 1024 * 1024) { // Increased limit for raw photos
+      return "Il file è troppo grande. Dimensione massima 10MB.";
     }
     return null;
   };
@@ -264,6 +268,7 @@ function App() {
     const validFiles: File[] = [];
     let error = null;
 
+    // First Validation Pass
     for (const file of files) {
       const err = validateFile(file);
       if (err) error = err;
@@ -277,12 +282,31 @@ function App() {
     }
 
     try {
-      const processedFiles = await Promise.all(validFiles.map(async f => ({
-        file: f,
-        previewUrl: URL.createObjectURL(f),
-        base64: await fileToBase64(f),
-        mimeType: f.type
-      })));
+      // Conversion & Processing Pass
+      const processedFiles = await Promise.all(validFiles.map(async (f) => {
+        let finalFile = f;
+        
+        // Handle HEIC Conversion
+        if (f.type === 'image/heic' || f.type === 'image/heic-sequence' || f.name.toLowerCase().endsWith('.heic')) {
+          const loadingToast = toast.info(`Conversione HEIC: ${f.name}...`, { autoClose: false });
+          try {
+            finalFile = await convertHeicToJpeg(f);
+            toast.dismiss(loadingToast);
+            toast.success(`Convertito: ${f.name} -> JPG`);
+          } catch (e) {
+            toast.dismiss(loadingToast);
+            toast.error(`Errore conversione ${f.name}`);
+            throw e;
+          }
+        }
+
+        return {
+          file: finalFile,
+          previewUrl: URL.createObjectURL(finalFile),
+          base64: await fileToBase64(finalFile),
+          mimeType: finalFile.type
+        };
+      }));
 
       if (processedFiles.length === 1) {
         const fileData = processedFiles[0];
@@ -329,6 +353,7 @@ function App() {
       }
 
     } catch (e) {
+      console.error(e);
       toast.error("Errore nella lettura dei file.");
       updateActiveSession({ errorMsg: "Errore nella lettura dei file." });
     }
@@ -705,7 +730,7 @@ function App() {
                    Carica {activeSession.name}
                 </h2>
                 <p className="text-slate-600">
-                  Trascina uno o più file (Immagini o PDF) per iniziare.
+                  Trascina uno o più file (Immagini, HEIC o PDF) per iniziare.
                 </p>
               </div>
               
@@ -1026,7 +1051,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.3.0-beta</p>
+            <p>v0.4.0-beta</p>
          </div>
       </footer>
 
