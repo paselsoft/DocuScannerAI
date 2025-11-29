@@ -1,4 +1,6 @@
 
+import { supabase } from './supabaseClient';
+
 // Implementazione crittografia AES-GCM Client-Side per Supabase
 // I dati vengono cifrati PRIMA di essere inviati al database.
 
@@ -26,6 +28,78 @@ function base64ToBuffer(base64: string): Uint8Array {
   return bytes;
 }
 
+// Funzione principale per SINCRONIZZARE la chiave tra LocalStorage e Cloud (Supabase)
+export const syncMasterKey = async (): Promise<boolean> => {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        // 1. Cerchiamo se c'è una chiave nel Cloud
+        const { data: cloudKeyData, error } = await supabase
+            .from('user_keys')
+            .select('master_key')
+            .eq('user_id', user.id)
+            .single();
+
+        const localKeyB64 = localStorage.getItem(KEY_STORAGE_NAME);
+
+        // CASO A: Chiave presente nel Cloud -> Scarichiamo e usiamo quella (La verità è nel Cloud)
+        if (cloudKeyData?.master_key) {
+            console.log("🔒 Chiave trovata nel Cloud. Sincronizzazione...");
+            // Se abbiamo una chiave locale diversa, la sovrascriviamo per allinearci
+            if (localKeyB64 !== cloudKeyData.master_key) {
+                localStorage.setItem(KEY_STORAGE_NAME, cloudKeyData.master_key);
+                cachedKey = null; // Resetta cache per forzare ricaricamento
+                await getEncryptionKey(); // Ricarica in memoria
+                console.log("✅ Chiave locale aggiornata dal Cloud.");
+            }
+            return true;
+        }
+
+        // CASO B: Nessuna chiave nel Cloud, ma abbiamo una chiave Locale (es. Preview environment)
+        if (localKeyB64 && !cloudKeyData) {
+            console.log("☁️ Caricamento chiave locale nel Cloud...");
+            const { error: uploadError } = await supabase
+                .from('user_keys')
+                .insert({
+                    user_id: user.id,
+                    master_key: localKeyB64
+                });
+            
+            if (uploadError) {
+                console.error("Errore upload chiave:", uploadError);
+                return false;
+            }
+            console.log("✅ Chiave salvata nel Cloud!");
+            return true;
+        }
+
+        // CASO C: Nessuna chiave né locale né Cloud (Primo avvio assoluto)
+        if (!localKeyB64 && !cloudKeyData) {
+            console.log("🆕 Generazione nuova Master Key (Local + Cloud)...");
+            // Genera
+            await getEncryptionKey(); 
+            // Recupera la stringa appena generata
+            const newKeyB64 = localStorage.getItem(KEY_STORAGE_NAME);
+            if (newKeyB64) {
+                 await supabase
+                .from('user_keys')
+                .insert({
+                    user_id: user.id,
+                    master_key: newKeyB64
+                });
+                console.log("✅ Nuova chiave generata e sincronizzata.");
+            }
+            return true;
+        }
+
+        return true;
+    } catch (e) {
+        console.error("Errore syncMasterKey:", e);
+        return false;
+    }
+};
+
 // Genera o recupera una chiave di crittografia persistente per il browser
 const getEncryptionKey = async (): Promise<CryptoKey> => {
     // 1. Controlla cache in memoria
@@ -49,9 +123,6 @@ const getEncryptionKey = async (): Promise<CryptoKey> => {
         return key;
       } catch (e) {
         console.error("ERRORE CRITICO: La chiave salvata nel browser sembra corrotta o non valida.", e);
-        // NON generiamo automaticamente una nuova chiave qui per evitare di rendere
-        // permanentemente illeggibili i dati vecchi sovrascrivendo la chiave.
-        // Se l'import fallisce, meglio lanciare errore che distruggere l'accesso.
         throw new Error("Errore critico sicurezza: Chiave di crittografia locale illeggibile.");
       }
     }

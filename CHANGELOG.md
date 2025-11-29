@@ -1,8 +1,13 @@
+
 # Changelog
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
 ## [0.2.1-beta] - 2025-02-24
+### Security & Sync
+- **Cloud Key Sync:** Implementata sincronizzazione automatica della chiave di crittografia tramite Supabase (`user_keys`).
+- **Device Continuity:** Le chiavi generate su un dispositivo (es. Preview) vengono ora propagate automaticamente agli altri (es. Cloud Run) al login, risolvendo l'errore "Dati Illeggibili".
+
 ### Reliability
 - **Error Boundary:** Introdotta una barriera di protezione contro i crash globali dell'applicazione. Ora viene mostrata una UI di cortesia con opzioni di ripristino invece di una pagina bianca.
 - **Hard Reset:** Aggiunta funzione di pulizia completa della cache locale in caso di errori persistenti.

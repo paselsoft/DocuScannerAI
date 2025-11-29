@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 // CSS loaded via CDN in index.html to avoid ESM import issues
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -25,6 +26,7 @@ import {
 } from './services/dbService';
 import { generateLegalizationPdf } from './services/pdfGenerator';
 import { exportToCsv } from './services/exportService';
+import { syncMasterKey } from './services/security';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -52,6 +54,7 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [isSupabaseReady, setIsSupabaseReady] = useState(isConfigured());
+  const [isSecurityReady, setIsSecurityReady] = useState(false); // Nuovo stato per la sync delle chiavi
 
   // Config states
   const [configUrl, setConfigUrl] = useState('');
@@ -74,31 +77,49 @@ function App() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState("");
 
-  // Auth Check
+  // Auth & Security Check
   useEffect(() => {
     if (!isSupabaseReady) {
         setLoadingAuth(false);
         return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const initApp = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Avvia sincronizzazione chiavi
+        await syncMasterKey();
+        setIsSecurityReady(true);
+      } else {
+        setIsSecurityReady(true); // Se non loggato, la sicurezza è "pronta" (non serve)
+      }
+      
       setLoadingAuth(false);
-    });
+    };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    initApp();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+          setLoadingAuth(true);
+          await syncMasterKey();
+          setIsSecurityReady(true);
+          setLoadingAuth(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, [isSupabaseReady]);
 
-  // Fetch History
+  // Fetch History only when User AND Security are ready
   useEffect(() => {
-    if (user) {
+    if (user && isSecurityReady) {
       loadHistory();
     }
-  }, [user]);
+  }, [user, isSecurityReady]);
 
   const loadHistory = async () => {
     try {
@@ -421,8 +442,16 @@ function App() {
   const sortedDocs = getFilteredAndSortedDocs();
 
   // --- Main Render ---
-  if (loadingAuth) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div>;
+  if (loadingAuth || (user && !isSecurityReady)) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600"/>
+        <div className="flex items-center gap-2 text-slate-600 font-medium animate-pulse">
+           <ShieldCheck className="w-5 h-5 text-emerald-500" />
+           <span>Sincronizzazione sicurezza in corso...</span>
+        </div>
+      </div>
+    );
   }
 
   if (!isSupabaseReady) {
