@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ExtractedData } from '../types';
 import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck, Users } from 'lucide-react';
@@ -25,6 +26,28 @@ const Validators = {
   notEmpty: (val: string) => val.trim().length > 0
 };
 
+// Helper per formattazione automatica
+const Formatters = {
+  // Converte 01012000 in 01/01/2000
+  date: (val: string) => {
+    const cleaned = val.replace(/\D/g, '');
+    let formatted = cleaned;
+    if (cleaned.length > 2) {
+      formatted = cleaned.substring(0, 2) + '/' + cleaned.substring(2);
+    }
+    if (cleaned.length > 4) {
+      formatted = formatted.substring(0, 5) + '/' + cleaned.substring(4, 8);
+    }
+    return formatted.substring(0, 10);
+  },
+  // Forza Maiuscolo
+  upper: (val: string) => val.toUpperCase(),
+  // CF: Max 16 e Maiuscolo
+  cf: (val: string) => val.toUpperCase().substring(0, 16),
+  // Sesso: Max 1 e Maiuscolo
+  gender: (val: string) => val.toUpperCase().substring(0, 1)
+};
+
 export const ResultForm: React.FC<ResultFormProps> = ({ 
   data, 
   onChange,
@@ -32,8 +55,12 @@ export const ResultForm: React.FC<ResultFormProps> = ({
   activeSessionId,
   setActiveSessionId
 }) => {
-  const handleChange = (field: keyof ExtractedData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    onChange(field, e.target.value);
+  const handleChange = (field: keyof ExtractedData, formatter?: (val: string) => string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    let value = e.target.value;
+    if (formatter) {
+      value = formatter(value);
+    }
+    onChange(field, value);
   };
 
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -92,35 +119,38 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           label="Cognome"
           icon={User}
           value={data.cognome}
-          onChange={handleChange('cognome')}
+          onChange={handleChange('cognome', Formatters.upper)}
           validate={Validators.notEmpty}
+          className="uppercase"
         />
 
         <FieldInput 
           label="Nome"
           icon={User}
           value={data.nome}
-          onChange={handleChange('nome')}
+          onChange={handleChange('nome', Formatters.upper)}
           validate={Validators.notEmpty}
+          className="uppercase"
         />
 
         <FieldInput 
           label="Sesso"
           icon={Users}
           value={data.sesso}
-          onChange={handleChange('sesso')}
+          onChange={handleChange('sesso', Formatters.gender)}
           placeholder="M / F"
-          className="uppercase"
+          className="uppercase w-20"
         />
 
         <FieldInput 
           label="Data di Nascita"
           icon={Calendar}
           value={data.data_nascita}
-          onChange={handleChange('data_nascita')}
+          onChange={handleChange('data_nascita', Formatters.date)}
           placeholder="GG/MM/AAAA"
           validate={Validators.date}
           warningMessage="Formato atteso: GG/MM/AAAA"
+          maxLength={10}
         />
 
         <div className="md:col-span-2">
@@ -128,7 +158,8 @@ export const ResultForm: React.FC<ResultFormProps> = ({
             label="Luogo di Nascita"
             icon={MapPin}
             value={data.luogo_nascita}
-            onChange={handleChange('luogo_nascita')}
+            onChange={handleChange('luogo_nascita', Formatters.upper)}
+            className="uppercase"
           />
         </div>
 
@@ -137,7 +168,8 @@ export const ResultForm: React.FC<ResultFormProps> = ({
             label="Indirizzo Residenza"
             icon={Map}
             value={data.indirizzo_residenza}
-            onChange={handleChange('indirizzo_residenza')}
+            onChange={handleChange('indirizzo_residenza', Formatters.upper)}
+            className="uppercase"
             />
         </div>
 
@@ -145,45 +177,49 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           label="Città Residenza"
           icon={MapPin}
           value={data.citta_residenza}
-          onChange={handleChange('citta_residenza')}
+          onChange={handleChange('citta_residenza', Formatters.upper)}
+          className="uppercase"
         />
 
         <FieldInput 
           label="Codice Fiscale"
           icon={CreditCard}
           value={data.codice_fiscale}
-          onChange={handleChange('codice_fiscale')}
-          className="font-mono"
+          onChange={handleChange('codice_fiscale', Formatters.cf)}
+          className="font-mono uppercase"
           validate={Validators.cf}
           warningMessage="Dovrebbe essere di 16 caratteri"
+          maxLength={16}
         />
 
         <FieldInput 
           label="N. Documento"
           icon={Hash}
           value={data.numero_documento}
-          onChange={handleChange('numero_documento')}
-          className="font-mono"
+          onChange={handleChange('numero_documento', Formatters.upper)}
+          className="font-mono uppercase"
         />
 
         <FieldInput 
           label="Data Rilascio"
           icon={CalendarCheck}
           value={data.data_rilascio}
-          onChange={handleChange('data_rilascio')}
+          onChange={handleChange('data_rilascio', Formatters.date)}
           placeholder="GG/MM/AAAA"
           validate={Validators.date}
           warningMessage="Formato atteso: GG/MM/AAAA"
+          maxLength={10}
         />
 
         <FieldInput 
           label="Data Scadenza"
           icon={Calendar}
           value={data.data_scadenza}
-          onChange={handleChange('data_scadenza')}
+          onChange={handleChange('data_scadenza', Formatters.date)}
           placeholder="GG/MM/AAAA"
           validate={Validators.date}
           warningMessage="Formato atteso: GG/MM/AAAA"
+          maxLength={10}
         />
 
       </div>
@@ -200,6 +236,7 @@ interface FieldInputProps {
   placeholder?: string;
   validate?: (val: string) => boolean;
   warningMessage?: string;
+  maxLength?: number;
 }
 
 const FieldInput: React.FC<FieldInputProps> = ({ 
@@ -210,7 +247,8 @@ const FieldInput: React.FC<FieldInputProps> = ({
   className = '', 
   placeholder,
   validate,
-  warningMessage
+  warningMessage,
+  maxLength
 }) => {
   const [copied, setCopied] = useState(false);
   
@@ -240,6 +278,7 @@ const FieldInput: React.FC<FieldInputProps> = ({
             value={value}
             onChange={onChange}
             placeholder={placeholder}
+            maxLength={maxLength}
             className={`
                 w-full pl-3 pr-10 py-2 bg-white border rounded-lg outline-none transition-all text-slate-900 placeholder-slate-400
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500

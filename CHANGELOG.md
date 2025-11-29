@@ -3,6 +3,14 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.9.0-beta] - 2025-02-24
+### Added
+- **Clipboard Support (Incolla):** Ora è possibile incollare immagini (CTRL+V) direttamente dall'area di upload. L'app rileva automaticamente l'immagine dagli appunti e la carica, velocizzando il flusso di lavoro per screenshot o immagini copiate da altre app.
+- **Smart Formatting:**
+    - I campi **Data** aggiungono automaticamente gli slash (`/`) durante la digitazione (es. `01012000` -> `01/01/2000`).
+    - I campi **Codice Fiscale** e **Targhe** convertono automaticamente il testo in MAIUSCOLO.
+    - Il campo **Sesso** è limitato a 1 carattere maiuscolo.
+
 ## [0.8.1-beta] - 2025-02-24
 ### Fixed
 - **Mobile Sharing Fix:** Risolto un "falso positivo" che generava un errore in console quando l'utente annullava manualmente la condivisione nativa su mobile. Ora l'azione viene gestita silenziosamente.

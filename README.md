@@ -1,14 +1,17 @@
 
 # DocuScanner AI
 
-**Versione:** 0.8.1-beta
+**Versione:** 0.9.0-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
 ## Caratteristiche Principali
 
 *   **PWA Installabile:** L'applicazione può essere installata su Home Screen (iOS/Android) o Desktop, funzionando come un'app nativa a schermo intero.
-*   **Mobile Experience Pack (Novità):** 
+*   **Speed & Comfort Update (Novità):**
+    *   **Incolla Rapido (CTRL+V):** Carica immagini direttamente dagli appunti senza doverle salvare su disco. Perfetto per screenshot e immagini ricevute via chat.
+    *   **Smart Formatting:** I campi data aggiungono automaticamente gli slash (`/`) e i Codici Fiscali vengono forzati in maiuscolo durante la digitazione.
+*   **Mobile Experience Pack:** 
     *   **Rotazione Immagini:** Correggi l'orientamento delle scansioni direttamente nell'app.
     *   **Condivisione Nativa:** Invia i dati estratti via WhatsApp/AirDrop tramite il menu di sistema iOS/Android.
     *   **Scatto Diretto:** Accesso immediato alla fotocamera posteriore.

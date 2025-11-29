@@ -1,7 +1,8 @@
 
-import React, { useRef, useState } from 'react';
-import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera, RotateCw } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera, RotateCw, ClipboardPaste } from 'lucide-react';
 import { FileData } from '../types';
+import { toast } from 'react-toastify';
 
 interface UploadAreaProps {
   frontFile: FileData | null;
@@ -24,6 +25,39 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Gestione Incolla (Ctrl+V)
+  useEffect(() => {
+    const handlePaste = async (e: ClipboardEvent) => {
+      // Ignora se l'utente sta scrivendo in un input testuale
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const pastedFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) pastedFiles.push(file);
+        }
+      }
+
+      if (pastedFiles.length > 0) {
+        toast.info("Immagine incollata dagli appunti!");
+        setIsProcessing(true);
+        await onFilesSelected(pastedFiles);
+        setIsProcessing(false);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [onFilesSelected]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -97,8 +131,12 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
       </div>
       
       {!frontFile && !backFile && !isDragging && (
-        <div className="text-center mt-6 text-slate-400 text-sm">
-           Suggerimento: Puoi trascinare file JPG, PNG, HEIC o PDF.
+        <div className="text-center mt-6 text-slate-400 text-xs flex items-center justify-center gap-2">
+           <span>Suggerimento: Trascina file, usa i pulsanti o</span>
+           <span className="inline-flex items-center gap-1 bg-slate-100 px-2 py-1 rounded text-slate-500 font-mono">
+             <ClipboardPaste className="w-3 h-3" /> CTRL+V
+           </span>
+           <span>per incollare.</span>
         </div>
       )}
     </div>
