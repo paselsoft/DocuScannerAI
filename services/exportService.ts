@@ -1,7 +1,7 @@
+
 import { ExtractedData } from "../types";
 
-export const exportToCsv = (data: ExtractedData) => {
-  // Definizione colonne
+const getCsvContent = (data: ExtractedData): string => {
   const headers = [
     "Cognome", 
     "Nome", 
@@ -17,7 +17,6 @@ export const exportToCsv = (data: ExtractedData) => {
     "Città"
   ];
 
-  // Preparazione riga dati
   const row = [
     data.cognome,
     data.nome,
@@ -32,7 +31,6 @@ export const exportToCsv = (data: ExtractedData) => {
     data.indirizzo_residenza,
     data.citta_residenza
   ].map(field => {
-    // Escape dei campi per il CSV (gestione virgole e quote)
     const stringField = String(field || '');
     if (stringField.includes(',') || stringField.includes('"')) {
         return `"${stringField.replace(/"/g, '""')}"`;
@@ -40,13 +38,15 @@ export const exportToCsv = (data: ExtractedData) => {
     return stringField;
   });
 
-  // Costruzione contenuto CSV
-  const csvContent = [
+  return [
     headers.join(','),
     row.join(',')
   ].join('\n');
+};
 
-  // Download
+export const exportToCsv = (data: ExtractedData) => {
+  const csvContent = getCsvContent(data);
+
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -56,4 +56,12 @@ export const exportToCsv = (data: ExtractedData) => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+};
+
+// Genera un oggetto File per la condivisione nativa (Web Share API)
+export const generateCsvFile = (data: ExtractedData): File => {
+    const csvContent = getCsvContent(data);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const fileName = `Export_${data.cognome || 'Documento'}.csv`;
+    return new File([blob], fileName, { type: 'text/csv' });
 };

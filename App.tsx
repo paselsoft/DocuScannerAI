@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -25,10 +25,11 @@ import {
   saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument 
 } from './services/dbService';
 import { generateLegalizationPdf } from './services/pdfGenerator';
-import { exportToCsv } from './services/exportService';
+import { exportToCsv, generateCsvFile } from './services/exportService';
 import { syncMasterKey } from './services/security';
 import { scanQrCodeFromImage } from './services/qrService';
 import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
+import { rotateImage } from './services/imageUtils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -360,6 +361,38 @@ function App() {
     }
   };
 
+  // Funzione per ruotare un'immagine di 90 gradi
+  const handleRotate = async (target: 'front' | 'back') => {
+    const fileData = target === 'front' ? activeSession.frontFile : activeSession.backFile;
+    if (!fileData) return;
+
+    try {
+      const loadingToast = toast.info("Rotazione immagine...", { autoClose: false });
+      
+      const rotatedFile = await rotateImage(fileData.file, 90);
+      const newBase64 = await fileToBase64(rotatedFile);
+      const newPreview = URL.createObjectURL(rotatedFile);
+      
+      const newFileData: FileData = {
+        file: rotatedFile,
+        base64: newBase64,
+        previewUrl: newPreview,
+        mimeType: 'image/jpeg'
+      };
+
+      if (target === 'front') {
+        updateActiveSession({ frontFile: newFileData });
+      } else {
+        updateActiveSession({ backFile: newFileData });
+      }
+      
+      toast.dismiss(loadingToast);
+    } catch (error) {
+      console.error(error);
+      toast.error("Errore durante la rotazione dell'immagine");
+    }
+  };
+
   const handleAnalyze = async () => {
     if (!activeSession.frontFile) {
       toast.warn("Carica almeno il fronte del documento.");
@@ -550,6 +583,36 @@ function App() {
     if (activeSession.extractedData) {
         exportToCsv(activeSession.extractedData);
         toast.success("File CSV scaricato!");
+    }
+  };
+
+  const handleNativeShare = async () => {
+    if (!activeSession.extractedData) return;
+
+    if (!navigator.canShare) {
+        toast.error("Il tuo browser non supporta la condivisione nativa.");
+        return;
+    }
+
+    try {
+        const file = generateCsvFile(activeSession.extractedData);
+        const shareData = {
+            files: [file],
+            title: `Documento - ${activeSession.extractedData.cognome}`,
+            text: `Dati estratti per ${activeSession.extractedData.cognome} ${activeSession.extractedData.nome}`
+        };
+
+        if (navigator.canShare(shareData)) {
+            await navigator.share(shareData);
+        } else {
+            toast.warn("Il tuo dispositivo non supporta la condivisione di file.");
+        }
+    } catch (err) {
+        console.error("Errore condivisione:", err);
+        // Ignora AbortError (utente ha chiuso il menu)
+        if ((err as Error).name !== 'AbortError') {
+             toast.error("Impossibile condividere.");
+        }
     }
   };
 
@@ -764,6 +827,8 @@ function App() {
                 onFilesSelected={processFiles}
                 onRemoveFront={() => updateActiveSession({ frontFile: null })}
                 onRemoveBack={() => updateActiveSession({ backFile: null })}
+                onRotateFront={() => handleRotate('front')}
+                onRotateBack={() => handleRotate('back')}
               />
 
               <div className="flex justify-center pt-4">
@@ -889,6 +954,16 @@ function App() {
                     )}
                   </button>
                   
+                  {/* Share button visible only if supported */}
+                  {navigator.canShare && (
+                      <button 
+                        onClick={handleNativeShare}
+                        className="flex-1 min-w-[140px] py-3 px-2 bg-pink-600 text-white rounded-lg shadow-md shadow-pink-200 hover:bg-pink-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                      >
+                        <Share2 className="w-4 h-4" /> Condividi
+                      </button>
+                  )}
+
                   <button 
                     onClick={handlePrintPdf}
                     className="flex-1 min-w-[140px] py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
@@ -1068,7 +1143,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.7.0-beta</p>
+            <p>v0.8.0-beta</p>
          </div>
       </footer>
 

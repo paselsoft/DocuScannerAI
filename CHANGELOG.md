@@ -1,6 +1,12 @@
+
 # Changelog
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
+
+## [0.8.0-beta] - 2025-02-24
+### Added
+- **Rotazione Immagini:** Pulsante per ruotare di 90° le immagini caricate direttamente nell'anteprima, ideale per correggere l'orientamento delle foto da mobile.
+- **Condivisione Nativa:** Integrazione con la **Web Share API** (iOS/Android Share Sheet). È ora possibile condividere il file CSV estratto direttamente tramite WhatsApp, Mail, AirDrop, ecc. senza scaricarlo.
 
 ## [0.7.0-beta] - 2025-02-24
 ### Added

@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera } from 'lucide-react';
+import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera, RotateCw } from 'lucide-react';
 import { FileData } from '../types';
 
 interface UploadAreaProps {
@@ -9,6 +9,8 @@ interface UploadAreaProps {
   onFilesSelected: (files: File[]) => void;
   onRemoveFront: () => void;
   onRemoveBack: () => void;
+  onRotateFront: () => void;
+  onRotateBack: () => void;
 }
 
 export const UploadArea: React.FC<UploadAreaProps> = ({ 
@@ -16,7 +18,9 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
   backFile, 
   onFilesSelected,
   onRemoveFront,
-  onRemoveBack
+  onRemoveBack,
+  onRotateFront,
+  onRotateBack
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -77,6 +81,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
           fileData={frontFile} 
           onFilesSelected={handleFileSelect} 
           onRemove={onRemoveFront}
+          onRotate={onRotateFront}
           color="blue"
           isMain={true}
         />
@@ -85,6 +90,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
           fileData={backFile} 
           onFilesSelected={handleFileSelect} 
           onRemove={onRemoveBack}
+          onRotate={onRotateBack}
           color="slate"
           isMain={false}
         />
@@ -104,11 +110,12 @@ interface SingleBoxProps {
   fileData: FileData | null;
   onFilesSelected: (files: File[]) => void;
   onRemove: () => void;
+  onRotate: () => void;
   color: 'blue' | 'slate';
   isMain: boolean;
 }
 
-const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSelected, onRemove, color, isMain }) => {
+const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSelected, onRemove, onRotate, color, isMain }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -141,7 +148,16 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
 
     return (
       <div className="relative group rounded-xl border border-slate-200 overflow-hidden h-64 bg-white flex flex-col shadow-sm">
-        <div className="absolute top-2 right-2 z-10">
+        <div className="absolute top-2 right-2 z-10 flex gap-2">
+           {!isPdf && (
+               <button 
+                onClick={(e) => { e.stopPropagation(); onRotate(); }}
+                className="bg-white text-blue-500 p-1.5 rounded-full hover:bg-blue-50 shadow-md border border-slate-100 transition-colors transform hover:scale-110"
+                title="Ruota 90°"
+               >
+                 <RotateCw className="w-4 h-4" />
+               </button>
+           )}
           <button 
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
             className="bg-white text-red-500 p-1.5 rounded-full hover:bg-red-50 shadow-md border border-slate-100 transition-colors transform hover:scale-110"

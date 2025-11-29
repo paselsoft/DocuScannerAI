@@ -1,14 +1,18 @@
+
 # DocuScanner AI
 
-**Versione:** 0.7.0-beta
+**Versione:** 0.8.0-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
 ## Caratteristiche Principali
 
-*   **PWA Installabile (Novità):** L'applicazione può essere installata su Home Screen (iOS/Android) o Desktop, funzionando come un'app nativa a schermo intero.
+*   **PWA Installabile:** L'applicazione può essere installata su Home Screen (iOS/Android) o Desktop, funzionando come un'app nativa a schermo intero.
+*   **Mobile Experience Pack (Novità):** 
+    *   **Rotazione Immagini:** Correggi l'orientamento delle scansioni direttamente nell'app.
+    *   **Condivisione Nativa:** Invia i dati estratti via WhatsApp/AirDrop tramite il menu di sistema iOS/Android.
+    *   **Scatto Diretto:** Accesso immediato alla fotocamera posteriore.
 *   **Intelligenza Artificiale:** Utilizza **Google Gemini 3 Pro** (via `@google/genai` SDK) per analizzare immagini e PDF con massima precisione e capacità di ragionamento.
-*   **Scatto Diretto:** Pulsante "Scatta Foto" dedicato per dispositivi mobili.
 *   **Reverse Engineering CF:** Calcola matematicamente **Sesso** e **Data di Nascita** direttamente dal Codice Fiscale, offrendo dati precisi anche se l'immagine è sfocata.
 *   **Supporto iPhone/HEIC:** Converte automaticamente i file `.HEIC` in JPEG direttamente nel browser, permettendo il caricamento diretto da dispositivi Apple senza configurazioni aggiuntive.
 *   **Scanner Universale (Barcode & QR):** Rileva automaticamente **Codici a Barre** (es. Tessera Sanitaria) e **QR Code** (es. CIE) per estrarre il Codice Fiscale con precisione del 100%, correggendo eventuali errori OCR.
@@ -21,9 +25,9 @@ DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estr
 ## Stack Tecnologico
 
 *   **Frontend:** React 19, TypeScript, Tailwind CSS, Vite.
-*   **PWA:** Service Worker, Web App Manifest.
+*   **PWA:** Service Worker, Web App Manifest, Web Share API.
 *   **AI:** Google Gemini API (`gemini-3-pro-preview`).
-*   **Image Processing:** `heic2any` (conversione HEIC->JPEG), `pdfjs-dist` (anteprima PDF).
+*   **Image Processing:** `heic2any` (conversione HEIC->JPEG), `pdfjs-dist` (anteprima PDF), Canvas API (Rotazione).
 *   **Barcode Scanning:** `@zxing/library` (supporto 1D/2D universale).
 *   **Security:** Web Crypto API (AES-GCM 256-bit).
 *   **Backend/Auth:** Supabase (Auth & Database).
