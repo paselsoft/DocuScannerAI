@@ -1,7 +1,11 @@
-
 # Changelog
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
+
+## [0.3.0-beta] - 2025-02-24
+### Added
+- **QR Code Scanning:** Integrata libreria `jsQR`. L'app ora scansiona automaticamente le immagini caricate alla ricerca di codici QR.
+- **Validazione Fiscale:** Se il QR contiene un Codice Fiscale valido (es. Carta d'Identità Elettronica), questo sovrascrive il dato estratto dall'AI, garantendo precisione assoluta.
 
 ## [0.2.2-beta] - 2025-02-24
 ### Stability

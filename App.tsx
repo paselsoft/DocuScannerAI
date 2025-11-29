@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -26,6 +26,7 @@ import {
 import { generateLegalizationPdf } from './services/pdfGenerator';
 import { exportToCsv } from './services/exportService';
 import { syncMasterKey } from './services/security';
+import { scanQrCodeFromImage } from './services/qrService';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -346,7 +347,29 @@ function App() {
         errorMsg: null, 
         saveSuccess: false 
       });
+
+      // 1. TENTATIVO SCANSIONE QR CODE (Fallback Locale & Validazione)
+      let qrFiscalCode: string | null = null;
+      try {
+          const frontQr = await scanQrCodeFromImage(activeSession.frontFile.file);
+          if (frontQr?.isFiscalCode) {
+              qrFiscalCode = frontQr.text;
+          } else if (activeSession.backFile) {
+              const backQr = await scanQrCodeFromImage(activeSession.backFile.file);
+              if (backQr?.isFiscalCode) {
+                  qrFiscalCode = backQr.text;
+              }
+          }
+          
+          if (qrFiscalCode) {
+              console.log("QR Code Rilevato (CF):", qrFiscalCode);
+              toast.success("QR Code rilevato: Codice Fiscale estratto!", { autoClose: 2000 });
+          }
+      } catch (e) {
+          console.warn("Errore scansione QR (ignorato):", e);
+      }
       
+      // 2. CHIAMATA AI (Gemini)
       const data = await extractDataFromDocument(
         activeSession.frontFile.base64, 
         activeSession.frontFile.mimeType,
@@ -354,11 +377,24 @@ function App() {
         activeSession.backFile?.mimeType
       );
       
+      // 3. MERGE DATI (QR vince su AI per CF)
+      const finalData = { ...data };
+      if (qrFiscalCode) {
+          finalData.codice_fiscale = qrFiscalCode.toUpperCase();
+          // Se abbiamo trovato un QR sulla CIE, siamo quasi certi che sia una CIE
+          if (!finalData.tipo_documento || finalData.tipo_documento === "Altro") {
+              finalData.tipo_documento = "Carta d'Identità";
+          }
+      }
+      
       updateActiveSession({ 
-        extractedData: data, 
+        extractedData: finalData, 
         status: ProcessingStatus.SUCCESS 
       });
-      toast.success("Dati estratti con successo!");
+      
+      if (!qrFiscalCode) {
+        toast.success("Dati estratti con successo!");
+      }
 
     } catch (err: any) {
       console.error(err);
@@ -985,7 +1021,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.2.2-beta</p>
+            <p>v0.3.0-beta</p>
          </div>
       </footer>
 
