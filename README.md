@@ -1,37 +1,39 @@
 
 # DocuScanner AI
 
-**Versione:** 0.9.0-beta
+**Versione:** 0.10.0-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
 ## Caratteristiche Principali
 
+*   **Smart Dashboard (Novità):** Monitora automaticamente le **scadenze** dei tuoi documenti.
+    *   **Badges Visuali:** Indicatori di stato immediati (Valido 🟢, In Scadenza 🟡, Scaduto 🔴).
+    *   **Calcolo Giorni:** Visualizza esattamente quanti giorni mancano al rinnovo.
+    *   **Ordinamento Intelligente:** Ordina l'archivio per data di scadenza per vedere subito le priorità.
 *   **PWA Installabile:** L'applicazione può essere installata su Home Screen (iOS/Android) o Desktop, funzionando come un'app nativa a schermo intero.
-*   **Speed & Comfort Update (Novità):**
-    *   **Incolla Rapido (CTRL+V):** Carica immagini direttamente dagli appunti senza doverle salvare su disco. Perfetto per screenshot e immagini ricevute via chat.
-    *   **Smart Formatting:** I campi data aggiungono automaticamente gli slash (`/`) e i Codici Fiscali vengono forzati in maiuscolo durante la digitazione.
+*   **Speed & Comfort Update:**
+    *   **Incolla Rapido (CTRL+V):** Carica immagini direttamente dagli appunti.
+    *   **Smart Formatting:** Formattazione automatica per Date, Codici Fiscali e Targhe.
 *   **Mobile Experience Pack:** 
     *   **Rotazione Immagini:** Correggi l'orientamento delle scansioni direttamente nell'app.
-    *   **Condivisione Nativa:** Invia i dati estratti via WhatsApp/AirDrop tramite il menu di sistema iOS/Android.
+    *   **Condivisione Nativa:** Invia i dati estratti via WhatsApp/AirDrop.
     *   **Scatto Diretto:** Accesso immediato alla fotocamera posteriore.
 *   **Intelligenza Artificiale:** Utilizza **Google Gemini 3 Pro** (via `@google/genai` SDK) per analizzare immagini e PDF con massima precisione e capacità di ragionamento.
-*   **Reverse Engineering CF:** Calcola matematicamente **Sesso** e **Data di Nascita** direttamente dal Codice Fiscale, offrendo dati precisi anche se l'immagine è sfocata.
-*   **Supporto iPhone/HEIC:** Converte automaticamente i file `.HEIC` in JPEG direttamente nel browser, permettendo il caricamento diretto da dispositivi Apple senza configurazioni aggiuntive.
-*   **Scanner Universale (Barcode & QR):** Rileva automaticamente **Codici a Barre** (es. Tessera Sanitaria) e **QR Code** (es. CIE) per estrarre il Codice Fiscale con precisione del 100%, correggendo eventuali errori OCR.
-*   **Sicurezza E2EE:** I dati sensibili vengono **cifrati direttamente nel browser** (AES-GCM) prima di essere inviati al database. Supabase archivia solo dati incomprensibili.
-*   **Gestione Multipla:** Carica e lavora su più documenti in parallelo grazie all'interfaccia a schede.
-*   **Archivio Cloud:** I dati cifrati vengono salvati su Supabase con autenticazione utente.
-*   **Generazione PDF:** Crea al volo moduli PDF standard (es. Legalizzazione Foto) già compilati con i dati estratti.
-*   **Esportazione Dati:** Scarica i dati in formato **CSV** (per Excel) o inoltrali automaticamente a **JotForm**.
+*   **Reverse Engineering CF:** Calcola matematicamente **Sesso** e **Data di Nascita** direttamente dal Codice Fiscale.
+*   **Scanner Universale (Barcode & QR):** Rileva automaticamente **Codici a Barre** e **QR Code** per estrarre il Codice Fiscale.
+*   **Sicurezza E2EE:** Crittografia AES-GCM lato client. I dati arrivano al server già cifrati.
+*   **Gestione Multipla:** Carica e lavora su più documenti in parallelo.
+*   **Generazione PDF:** Crea al volo moduli PDF standard (es. Legalizzazione Foto).
+*   **Esportazione Dati:** CSV e integrazione diretta con JotForm.
 
 ## Stack Tecnologico
 
 *   **Frontend:** React 19, TypeScript, Tailwind CSS, Vite.
 *   **PWA:** Service Worker, Web App Manifest, Web Share API.
 *   **AI:** Google Gemini API (`gemini-3-pro-preview`).
-*   **Image Processing:** `heic2any` (conversione HEIC->JPEG), `pdfjs-dist` (anteprima PDF), Canvas API (Rotazione).
-*   **Barcode Scanning:** `@zxing/library` (supporto 1D/2D universale).
+*   **Image Processing:** `heic2any`, `pdfjs-dist`, Canvas API.
+*   **Barcode Scanning:** `@zxing/library`.
 *   **Security:** Web Crypto API (AES-GCM 256-bit).
 *   **Backend/Auth:** Supabase (Auth & Database).
 
@@ -85,4 +87,4 @@ create policy "Users can manage own key" on user_keys
 1.  Clona il repository.
 2.  Installa le dipendenze: `npm install`
 3.  Avvia in sviluppo: `npm run dev`
-4.  Apri il browser e configura le chiavi API quando richiesto (se non presenti nel file `.env`).
+4.  Apri il browser e configura le chiavi API quando richiesto.

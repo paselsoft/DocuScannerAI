@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -30,6 +30,7 @@ import { syncMasterKey } from './services/security';
 import { scanQrCodeFromImage } from './services/qrService';
 import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
 import { rotateImage } from './services/imageUtils';
+import { getExpirationInfo, parseItalianDate } from './services/dateUtils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -72,7 +73,7 @@ function App() {
 
   // Vault States
   const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type'>('newest');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type' | 'expiration'>('newest');
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
   const [docToDelete, setDocToDelete] = useState<string | null>(null);
 
@@ -632,6 +633,15 @@ function App() {
       if (sortOrder === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       if (sortOrder === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       if (sortOrder === 'type') return a.doc_type.localeCompare(b.doc_type);
+      if (sortOrder === 'expiration') {
+          const dateA = parseItalianDate(a.content.data_scadenza);
+          const dateB = parseItalianDate(b.content.data_scadenza);
+          
+          if (!dateA) return 1; // Put ones without date at the end
+          if (!dateB) return -1;
+          
+          return dateA.getTime() - dateB.getTime(); // Ascending (Expired first)
+      }
       return 0;
     });
   };
@@ -1008,11 +1018,12 @@ function App() {
                   <div className="relative group">
                     <button className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
                       <ArrowUpDown className="w-3 h-3" />
-                      {sortOrder === 'newest' ? 'Più recenti' : sortOrder === 'oldest' ? 'Meno recenti' : 'Per tipo'}
+                      {sortOrder === 'newest' ? 'Più recenti' : sortOrder === 'oldest' ? 'Meno recenti' : sortOrder === 'expiration' ? 'Per scadenza' : 'Per tipo'}
                     </button>
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-100 shadow-lg rounded-lg py-1 w-32 hidden group-hover:block z-20">
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-100 shadow-lg rounded-lg py-1 w-36 hidden group-hover:block z-20">
                       <button onClick={() => setSortOrder('newest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Più recenti</button>
                       <button onClick={() => setSortOrder('oldest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Meno recenti</button>
+                      <button onClick={() => setSortOrder('expiration')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700 flex justify-between items-center">Per scadenza <CalendarClock className="w-3 h-3 text-slate-400"/></button>
                       <button onClick={() => setSortOrder('type')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Per tipo</button>
                     </div>
                   </div>
@@ -1044,56 +1055,84 @@ function App() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sortedDocs.map((savedDoc) => (
-                    <div 
-                      key={savedDoc.id} 
-                      className={`bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-all group relative ${savedDoc.is_error ? 'border-red-200 bg-red-50/20' : 'border-slate-200'}`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-2">
-                           <div className={`p-2 rounded-lg ${savedDoc.is_error ? 'bg-red-50 text-red-500' : savedDoc.is_encrypted ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
-                              {savedDoc.is_error ? <AlertCircle className="w-4 h-4" /> : savedDoc.is_encrypted ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
-                           </div>
-                           <div>
-                              <p className={`text-xs font-medium ${savedDoc.is_error ? 'text-red-400' : 'text-slate-400'}`}>{savedDoc.doc_type || 'Sconosciuto'}</p>
-                              <p className="text-xs text-slate-300">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
-                           </div>
-                        </div>
-                        <div className="flex gap-1">
-                           <button 
-                             onClick={() => setPreviewDoc(savedDoc)}
-                             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                             title="Anteprima rapida"
-                             disabled={savedDoc.is_error}
-                           >
-                             <Eye className={`w-4 h-4 ${savedDoc.is_error ? 'opacity-50 cursor-not-allowed' : ''}`} />
-                           </button>
-                           <button 
-                             onClick={() => setDocToDelete(savedDoc.id)}
-                             className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                             title="Elimina"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </button>
-                        </div>
-                      </div>
-                      
-                      <h4 className={`font-semibold text-sm mb-3 truncate ${savedDoc.is_error ? 'text-red-600' : 'text-slate-800'}`} title={String(savedDoc.summary)}>
-                        {String(savedDoc.summary)}
-                      </h4>
-
-                      <button 
-                        onClick={() => handleLoadDoc(savedDoc)}
-                        className={`w-full py-2 text-xs font-semibold rounded-lg transition-colors ${
-                          savedDoc.is_error 
-                          ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-not-allowed' 
-                          : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
-                        }`}
+                  {sortedDocs.map((savedDoc) => {
+                    const expiryInfo = getExpirationInfo(savedDoc.content.data_scadenza);
+                    
+                    return (
+                      <div 
+                        key={savedDoc.id} 
+                        className={`bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-all group relative ${savedDoc.is_error ? 'border-red-200 bg-red-50/20' : 'border-slate-200'}`}
                       >
-                        {savedDoc.is_error ? "Illeggibile (Elimina)" : savedDoc.is_encrypted ? "Decifra e Carica" : "Carica nel workspace"}
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className={`p-2 rounded-lg ${savedDoc.is_error ? 'bg-red-50 text-red-500' : savedDoc.is_encrypted ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                                {savedDoc.is_error ? <AlertCircle className="w-4 h-4" /> : savedDoc.is_encrypted ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                            </div>
+                            <div>
+                                <p className={`text-xs font-medium ${savedDoc.is_error ? 'text-red-400' : 'text-slate-400'}`}>{savedDoc.doc_type || 'Sconosciuto'}</p>
+                                <p className="text-xs text-slate-300">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => setPreviewDoc(savedDoc)}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Anteprima rapida"
+                              disabled={savedDoc.is_error}
+                            >
+                              <Eye className={`w-4 h-4 ${savedDoc.is_error ? 'opacity-50 cursor-not-allowed' : ''}`} />
+                            </button>
+                            <button 
+                              onClick={() => setDocToDelete(savedDoc.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Elimina"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <h4 className={`font-semibold text-sm mb-3 truncate ${savedDoc.is_error ? 'text-red-600' : 'text-slate-800'}`} title={String(savedDoc.summary)}>
+                          {String(savedDoc.summary)}
+                        </h4>
+                        
+                        {/* Expiration Badge & Bar */}
+                        {!savedDoc.is_error && expiryInfo.status !== 'unknown' && (
+                           <div className="mb-4">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${expiryInfo.bgColor} ${expiryInfo.color} flex items-center gap-1`}>
+                                    {expiryInfo.status === 'expired' && <AlertTriangle className="w-3 h-3" />}
+                                    {expiryInfo.status === 'valid' && <CheckCircle className="w-3 h-3" />}
+                                    {expiryInfo.status === 'warning' && <CalendarClock className="w-3 h-3" />}
+                                    {expiryInfo.label}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono">{savedDoc.content.data_scadenza}</span>
+                              </div>
+                              <div className="w-full bg-slate-100 rounded-full h-1.5">
+                                <div 
+                                   className={`h-1.5 rounded-full transition-all duration-500 ${
+                                     expiryInfo.status === 'valid' ? 'bg-emerald-500' :
+                                     expiryInfo.status === 'warning' ? 'bg-amber-500' : 'bg-red-500'
+                                   }`} 
+                                   style={{ width: `${expiryInfo.progress}%` }}
+                                ></div>
+                              </div>
+                           </div>
+                        )}
+
+                        <button 
+                          onClick={() => handleLoadDoc(savedDoc)}
+                          className={`w-full py-2 text-xs font-semibold rounded-lg transition-colors ${
+                            savedDoc.is_error 
+                            ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-not-allowed' 
+                            : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                          }`}
+                        >
+                          {savedDoc.is_error ? "Illeggibile (Elimina)" : savedDoc.is_encrypted ? "Decifra e Carica" : "Carica nel workspace"}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
           </div>
@@ -1145,7 +1184,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.9.0-beta</p>
+            <p>v0.10.0-beta</p>
          </div>
       </footer>
 

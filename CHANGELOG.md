@@ -3,6 +3,16 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.10.0-beta] - 2025-02-24
+### Added
+- **Smart Dashboard:** L'archivio cloud è stato completamente ridisegnato per includere informazioni vitali sullo stato del documento.
+- **Expiration Monitor:** Nuova logica (`dateUtils`) che calcola i giorni rimanenti alla scadenza di ogni documento.
+- **Visual Badges:** Le card dei documenti ora mostrano badge colorati:
+    - 🔴 **Scaduto:** Il documento non è più valido.
+    - 🟡 **In Scadenza:** Mancano meno di 90 giorni.
+    - 🟢 **Valido:** Il documento è in regola.
+- **Sorting:** Aggiunta nuova opzione di ordinamento "Per Scadenza" per visualizzare immediatamente i documenti che richiedono attenzione.
+
 ## [0.9.0-beta] - 2025-02-24
 ### Added
 - **Clipboard Support (Incolla):** Ora è possibile incollare immagini (CTRL+V) direttamente dall'area di upload. L'app rileva automaticamente l'immagine dagli appunti e la carica, velocizzando il flusso di lavoro per screenshot o immagini copiate da altre app.
