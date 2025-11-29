@@ -2,6 +2,11 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.6.0-beta] - 2025-02-24
+### Added
+- **Direct Camera Capture:** Aggiunto un pulsante "Scatta Foto" nell'area di upload.
+- **Mobile Optimized:** Su dispositivi mobili (iPhone/iPad/Android), apre direttamente la fotocamera posteriore per uno scatto immediato, bypassando la galleria e la selezione file.
+
 ## [0.5.0-beta] - 2025-02-24
 ### Added
 - **Reverse Engineering Codice Fiscale:** Nuova logica matematica (`fiscalCodeUtils`) che permette di estrarre Data di Nascita e Sesso direttamente dal Codice Fiscale.

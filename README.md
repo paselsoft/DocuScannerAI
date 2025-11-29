@@ -1,13 +1,14 @@
 # DocuScanner AI
 
-**Versione:** 0.5.0-beta
+**Versione:** 0.6.0-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
 ## Caratteristiche Principali
 
 *   **Intelligenza Artificiale:** Utilizza **Google Gemini 3 Pro** (via `@google/genai` SDK) per analizzare immagini e PDF con massima precisione e capacità di ragionamento.
-*   **Reverse Engineering CF (Novità):** Calcola matematicamente **Sesso** e **Data di Nascita** direttamente dal Codice Fiscale, offrendo dati precisi anche se l'immagine è sfocata.
+*   **Scatto Diretto (Novità):** Pulsante "Scatta Foto" dedicato per dispositivi mobili. Apre direttamente la fotocamera per un inserimento immediato dei documenti.
+*   **Reverse Engineering CF:** Calcola matematicamente **Sesso** e **Data di Nascita** direttamente dal Codice Fiscale, offrendo dati precisi anche se l'immagine è sfocata.
 *   **Supporto iPhone/HEIC:** Converte automaticamente i file `.HEIC` in JPEG direttamente nel browser, permettendo il caricamento diretto da dispositivi Apple senza configurazioni aggiuntive.
 *   **Scanner Universale (Barcode & QR):** Rileva automaticamente **Codici a Barre** (es. Tessera Sanitaria) e **QR Code** (es. CIE) per estrarre il Codice Fiscale con precisione del 100%, correggendo eventuali errori OCR.
 *   **Sicurezza E2EE:** I dati sensibili vengono **cifrati direttamente nel browser** (AES-GCM) prima di essere inviati al database. Supabase archivia solo dati incomprensibili.

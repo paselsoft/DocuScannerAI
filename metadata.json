@@ -1,5 +1,7 @@
 {
   "name": "DocuScanner AI",
   "description": "Applicazione per l'estrazione automatica di dati da documenti di identità (Patente, Carta d'Identità, Tessera Sanitaria) utilizzando l'AI per compilare form.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

@@ -1,6 +1,6 @@
 
 import React, { useRef, useState } from 'react';
-import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2 } from 'lucide-react';
+import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera } from 'lucide-react';
 import { FileData } from '../types';
 
 interface UploadAreaProps {
@@ -20,7 +20,6 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -110,19 +109,27 @@ interface SingleBoxProps {
 }
 
 const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSelected, onRemove, color, isMain }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       onFilesSelected(Array.from(e.target.files));
     }
     // Reset input
-    if (inputRef.current) inputRef.current.value = '';
+    if (e.target) e.target.value = '';
   };
 
-  const handleClick = () => {
+  const handleBoxClick = () => {
     if (!fileData) {
-      inputRef.current?.click();
+      fileInputRef.current?.click();
+    }
+  };
+
+  const handleCameraClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita di aprire anche il file picker normale
+    if (!fileData) {
+      cameraInputRef.current?.click();
     }
   };
 
@@ -177,15 +184,26 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
 
   return (
     <div 
-      onClick={handleClick}
+      onClick={handleBoxClick}
       className={`border-2 border-dashed ${borderColor} hover:bg-white hover:border-blue-400 hover:shadow-md rounded-xl p-6 transition-all cursor-pointer flex flex-col items-center justify-center text-center group h-64 relative`}
     >
+      {/* Input Standard per File Picker */}
       <input 
         type="file" 
-        ref={inputRef} 
+        ref={fileInputRef} 
         onChange={handleChange} 
         accept="image/jpeg,image/png,image/webp,application/pdf,image/heic,image/heic-sequence" 
         multiple
+        className="hidden" 
+      />
+
+      {/* Input Speciale per Fotocamera (capture="environment" forza la fotocamera posteriore su mobile) */}
+      <input 
+        type="file" 
+        ref={cameraInputRef} 
+        onChange={handleChange} 
+        accept="image/*" 
+        capture="environment"
         className="hidden" 
       />
       
@@ -200,8 +218,23 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
       <h3 className={`text-sm font-bold ${color === 'blue' ? 'text-blue-700' : 'text-slate-700'}`}>
         {label}
       </h3>
-      <p className="text-xs text-slate-500 mt-2 max-w-[180px] leading-relaxed">
-        Clicca per selezionare o trascina file (Img, PDF, HEIC)
+      
+      <div className="mt-4 flex gap-2 w-full justify-center px-4">
+          <button 
+             className="flex-1 bg-white border border-slate-300 text-slate-600 text-xs font-semibold py-2 px-3 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+          >
+             Scegli File
+          </button>
+          <button 
+             onClick={handleCameraClick}
+             className="flex-1 bg-blue-600 text-white text-xs font-semibold py-2 px-3 rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-1"
+          >
+             <Camera className="w-3 h-3" /> Scatta
+          </button>
+      </div>
+
+      <p className="text-[10px] text-slate-400 mt-2">
+        Trascina file o usa i pulsanti
       </p>
     </div>
   );
