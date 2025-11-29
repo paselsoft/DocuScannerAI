@@ -1,5 +1,6 @@
+
 import React, { useRef, useState } from 'react';
-import { UploadCloud, Image as ImageIcon, X, Plus, Files, FileText } from 'lucide-react';
+import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2 } from 'lucide-react';
 import { FileData } from '../types';
 
 interface UploadAreaProps {
@@ -18,6 +19,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
   onRemoveBack
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -30,13 +32,21 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      onFilesSelected(Array.from(e.dataTransfer.files));
+      setIsProcessing(true);
+      await onFilesSelected(Array.from(e.dataTransfer.files));
+      setIsProcessing(false);
     }
   };
+
+  const handleFileSelect = async (files: File[]) => {
+    setIsProcessing(true);
+    await onFilesSelected(files);
+    setIsProcessing(false);
+  }
 
   return (
     <div 
@@ -54,12 +64,19 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
         </div>
         <p className="text-xl font-bold text-blue-600">Rilascia i documenti qui</p>
       </div>
+      
+      {isProcessing && (
+        <div className="absolute top-0 left-0 w-full h-full bg-white/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center rounded-2xl">
+          <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+          <p className="text-lg font-semibold text-slate-700">Elaborazione file...</p>
+        </div>
+      )}
 
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isDragging ? 'opacity-20 blur-sm' : ''}`}>
         <SingleUploadBox 
           label="Fronte Documento" 
           fileData={frontFile} 
-          onFilesSelected={onFilesSelected} 
+          onFilesSelected={handleFileSelect} 
           onRemove={onRemoveFront}
           color="blue"
           isMain={true}
@@ -67,7 +84,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
         <SingleUploadBox 
           label="Retro Documento" 
           fileData={backFile} 
-          onFilesSelected={onFilesSelected} 
+          onFilesSelected={handleFileSelect} 
           onRemove={onRemoveBack}
           color="slate"
           isMain={false}
@@ -174,7 +191,7 @@ const SingleUploadBox: React.FC<SingleBoxProps> = ({ label, fileData, onFilesSel
       
       <div className={`bg-white p-4 rounded-full shadow-sm mb-4 group-hover:scale-110 transition-transform`}>
         {color === 'blue' ? (
-           <UploadCloud className={`w-8 h-8 ${iconColor}`} />
+           <CloudUpload className={`w-8 h-8 ${iconColor}`} />
         ) : (
            <Plus className={`w-8 h-8 ${iconColor}`} />
         )}

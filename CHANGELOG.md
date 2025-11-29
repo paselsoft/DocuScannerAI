@@ -2,14 +2,6 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
-## [0.2.0-beta] - 2024-05-22
-### Added
-- Implementato sistema di conferma per l'eliminazione dei documenti dal cloud tramite modale dedicato.
-- Introdotto versionamento Beta per il testing delle nuove funzionalità.
-
-### Fixed
-- Risolto conflitto tra gestori di eventi di cancellazione (rimossa funzione `handleDeleteDoc` inutilizzata).
-
 ## [0.1.0] - 2024-05-22
 ### Added
 - **Core:** Integrazione con Google Gemini 2.0 Flash per l'estrazione OCR intelligente.

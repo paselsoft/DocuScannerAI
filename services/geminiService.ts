@@ -83,8 +83,9 @@ export const extractDataFromDocument = async (
       }
     });
 
-    if (response.text) {
-      const data = JSON.parse(response.text) as ExtractedData;
+    const text = response.text;
+    if (text) {
+      const data = JSON.parse(text) as ExtractedData;
       
       // Controllo base di validità
       if (!data.cognome && !data.nome && !data.tipo_documento) {

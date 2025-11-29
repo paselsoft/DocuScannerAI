@@ -1,7 +1,7 @@
 {
   "name": "docuscanner-ai",
   "private": true,
-  "version": "0.2.0-beta",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,10 @@
     "react-dom": "^18.2.0",
     "lucide-react": "^0.344.0",
     "@google/genai": "^0.1.0",
-    "pdfjs-dist": "^4.0.379"
+    "pdfjs-dist": "^4.0.379",
+    "react-toastify": "^10.0.5",
+    "jspdf": "^2.5.1",
+    "@supabase/supabase-js": "^2.39.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.64",

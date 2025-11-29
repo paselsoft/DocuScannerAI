@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { ToastContainer, toast } from 'react-toastify';
+// CSS loaded via CDN in index.html to avoid ESM import issues
+import { 
+  Plus, History, FileText, Trash2, Save, Download, 
+  ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
+  Sparkles, RefreshCw
+} from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
 import { ResultForm } from './components/ResultForm';
+import { AuthForm } from './components/AuthForm';
 import { JotformModal } from './components/JotformModal';
 import { PdfThumbnail } from './components/PdfThumbnail';
-import { AuthForm } from './components/AuthForm';
+import { ResultPreview } from './components/ResultPreview';
+import { PreviewModal } from './components/PreviewModal';
+import { 
+  ExtractedData, FileData, ProcessingStatus, DocumentSession 
+} from './types';
 import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64 } from './services/utils';
-import { saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument } from './services/dbService';
 import { supabase, isConfigured, saveSupabaseConfig } from './services/supabaseClient';
-import { ExtractedData, FileData, ProcessingStatus, DocumentSession } from './types';
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Sparkles, Save, Cloud, History, ScanSearch, Plus, X, FileText, Send, Pencil, Filter, Trash2, Database, Key, Printer } from 'lucide-react';
-import { ToastContainer, toast } from 'react-toastify';
+import { 
+  saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument 
+} from './services/dbService';
 import { generateLegalizationPdf } from './services/pdfGenerator';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
@@ -36,76 +47,75 @@ const VAULT_FILTERS = [
   "Altro"
 ];
 
-const App: React.FC = () => {
-  const [session, setSession] = useState<any>(null); // Supabase User Session
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+function App() {
+  const [user, setUser] = useState<any>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
   const [isSupabaseReady, setIsSupabaseReady] = useState(isConfigured());
 
-  // Stati Configurazione Supabase (se mancano chiavi)
+  // Config states
   const [configUrl, setConfigUrl] = useState('');
   const [configKey, setConfigKey] = useState('');
-
+  
   const [sessions, setSessions] = useState<DocumentSession[]>([createEmptySession(0)]);
   const [activeSessionId, setActiveSessionId] = useState<string>(sessions[0].id);
-  
-  const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isJotformOpen, setIsJotformOpen] = useState(false);
 
-  // Stati per la rinomina della sessione
+  const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
+  const [isJotformOpen, setIsJotformOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Vault States
+  const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type'>('newest');
+  const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
+  const [docToDelete, setDocToDelete] = useState<string | null>(null);
+
+  // Session Renaming
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [tempName, setTempName] = useState("");
 
-  // Stato per il filtro del Vault
-  const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
-
-  // Stato per la cancellazione documento
-  const [deletingDocId, setDeletingDocId] = useState<string | null>(null);
-
-  // Gestione Autenticazione
+  // Auth Check
   useEffect(() => {
     if (!isSupabaseReady) {
-        setIsLoadingAuth(false);
+        setLoadingAuth(false);
         return;
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsLoadingAuth(false);
+      setUser(session?.user ?? null);
+      setLoadingAuth(false);
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
   }, [isSupabaseReady]);
 
-  // Carica i documenti dal cloud quando l'utente è loggato
+  // Fetch History
   useEffect(() => {
-    if (session) {
-      loadDocs();
+    if (user) {
+      loadHistory();
     }
-  }, [session]);
+  }, [user]);
 
-  const loadDocs = async () => {
+  const loadHistory = async () => {
     try {
       const docs = await fetchDocumentsFromDb();
       setSavedDocs(docs);
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (error) {
+      console.error(error);
+      toast.error("Errore caricamento storico");
     }
   };
 
   const handleConfigSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      try {
-          saveSupabaseConfig(configUrl, configKey);
-      } catch (e: any) {
-          toast.error(e.message);
-      }
+    e.preventDefault();
+    try {
+        saveSupabaseConfig(configUrl, configKey);
+    } catch (e: any) {
+        toast.error(e.message);
+    }
   };
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
@@ -114,6 +124,33 @@ const App: React.FC = () => {
     setSessions(prev => prev.map(s => 
       s.id === activeSessionId ? { ...s, ...updates } : s
     ));
+  };
+
+  // --- Session Management ---
+  const addNewSession = () => {
+    const newSession = createEmptySession(sessions.length);
+    setSessions([...sessions, newSession]);
+    setActiveSessionId(newSession.id);
+  };
+
+  const removeSession = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (sessions.length === 1) {
+      updateActiveSession({
+        frontFile: null,
+        backFile: null,
+        extractedData: null,
+        status: ProcessingStatus.IDLE,
+        errorMsg: null,
+        saveSuccess: false
+      });
+      return;
+    }
+    const newSessions = sessions.filter(s => s.id !== id);
+    setSessions(newSessions);
+    if (activeSessionId === id) {
+      setActiveSessionId(newSessions[newSessions.length - 1].id);
+    }
   };
 
   const startRenaming = (session: DocumentSession, e: React.MouseEvent) => {
@@ -140,6 +177,7 @@ const App: React.FC = () => {
     if (e.key === 'Escape') setRenamingId(null);
   };
 
+  // --- File Processing ---
   const validateFile = (file: File): string | null => {
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
@@ -285,29 +323,13 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoadDoc = (doc: SavedDocument) => {
-    // Carica i dati nella sessione corrente
-    updateActiveSession({
-      name: doc.summary,
-      extractedData: doc.content,
-      status: ProcessingStatus.SUCCESS,
-      frontFile: null, // I file immagini non sono nel DB
-      backFile: null,
-      saveSuccess: true // È già salvato
-    });
-    
-    // Scroll in alto per vedere i dati
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    toast.info("Documento caricato dall'archivio.");
-  };
-
-  // Salvataggio su Supabase
+  // --- Cloud Operations ---
   const handleCloudSave = async () => {
     if (!activeSession.extractedData) return;
     setIsSaving(true);
     try {
       await saveDocumentToDb(activeSession.extractedData);
-      await loadDocs(); // Ricarica lista dal cloud
+      await loadHistory();
       updateActiveSession({ saveSuccess: true });
       toast.success("Documento salvato nel cloud!");
       setTimeout(() => updateActiveSession({ saveSuccess: false }), 3000);
@@ -318,21 +340,37 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteRequest = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDeletingDocId(id);
+  const handleLoadDoc = (doc: SavedDocument) => {
+    updateActiveSession({
+      name: doc.summary,
+      extractedData: doc.content,
+      status: ProcessingStatus.SUCCESS,
+      frontFile: null,
+      backFile: null,
+      saveSuccess: true
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.info("Documento caricato.");
   };
 
   const confirmDelete = async () => {
-    if (!deletingDocId) return;
+    if (!docToDelete) return;
     try {
-        await deleteDocumentFromDb(deletingDocId);
-        setSavedDocs(prev => prev.filter(d => d.id !== deletingDocId));
-        toast.info("Documento eliminato.");
-    } catch (e: any) {
-        toast.error("Errore durante l'eliminazione: " + e.message);
+      await deleteDocumentFromDb(docToDelete);
+      setSavedDocs(prev => prev.filter(d => d.id !== docToDelete));
+      toast.info("Documento eliminato.");
+      if (activeSession.id === docToDelete) {
+          updateActiveSession({
+            status: ProcessingStatus.IDLE,
+            extractedData: null,
+            frontFile: null,
+            backFile: null
+          });
+      }
+    } catch (e) {
+      toast.error("Errore durante l'eliminazione.");
     } finally {
-        setDeletingDocId(null);
+      setDocToDelete(null);
     }
   };
 
@@ -347,53 +385,31 @@ const App: React.FC = () => {
     }
   };
 
-  const addNewSession = () => {
-    const newSession = createEmptySession(sessions.length);
-    setSessions([...sessions, newSession]);
-    setActiveSessionId(newSession.id);
-  };
+  // --- Rendering Helpers ---
+  const getFilteredAndSortedDocs = () => {
+    let result = savedDocs;
 
-  const removeSession = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (sessions.length === 1) {
-      handleResetSession();
-      return;
+    // Filter
+    if (vaultFilter !== "Tutti") {
+      result = result.filter(doc => doc.doc_type === vaultFilter);
     }
-    const newSessions = sessions.filter(s => s.id !== id);
-    setSessions(newSessions);
-    if (activeSessionId === id) {
-      setActiveSessionId(newSessions[newSessions.length - 1].id);
-    }
+
+    // Sort
+    return result.sort((a, b) => {
+      if (sortOrder === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      if (sortOrder === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      if (sortOrder === 'type') return a.doc_type.localeCompare(b.doc_type);
+      return 0;
+    });
   };
 
-  const ResultPreview = ({ file, label }: { file: FileData; label: string }) => {
-    const isPdf = file.mimeType === 'application/pdf';
-    return (
-      <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
-        <span className={`text-[10px] font-bold ${label === 'Fronte' ? 'text-blue-600 bg-blue-50' : 'text-slate-600 bg-slate-100'} px-2 py-1 rounded uppercase mb-2 inline-block`}>
-          {label}
-        </span>
-        <div className="relative rounded-lg overflow-hidden bg-slate-50 h-32 flex items-center justify-center">
-          {isPdf ? (
-            <PdfThumbnail file={file.file} className="w-full h-full" />
-          ) : (
-            <img src={file.previewUrl} className="max-w-full max-h-full object-contain" alt={label} />
-          )}
-        </div>
-      </div>
-    );
-  };
+  const sortedDocs = getFilteredAndSortedDocs();
 
-  const filteredDocs = savedDocs.filter(doc => {
-    if (vaultFilter === "Tutti") return true;
-    return doc.doc_type === vaultFilter;
-  });
-
-  if (isLoadingAuth) {
+  // --- Main Render ---
+  if (loadingAuth) {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-8 h-8 animate-spin text-blue-600"/></div>;
   }
 
-  // --- CONFIGURAZIONE SUPABASE MANCANTE ---
   if (!isSupabaseReady) {
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
@@ -456,8 +472,7 @@ const App: React.FC = () => {
     );
   }
 
-  // --- UTENTE NON LOGGATO ---
-  if (!session) {
+  if (!user) {
     return (
       <>
         <AuthForm />
@@ -466,7 +481,6 @@ const App: React.FC = () => {
     );
   }
 
-  // --- APP PRINCIPALE ---
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header />
@@ -524,7 +538,7 @@ const App: React.FC = () => {
                     </button>
                  )}
 
-                 {session.saveSuccess && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                 {session.saveSuccess && <CheckCircle className="w-4 h-4 text-green-500" />}
                  {session.status === ProcessingStatus.ERROR && <AlertCircle className="w-4 h-4 text-red-500" />}
                  
                  <button 
@@ -662,7 +676,7 @@ const App: React.FC = () => {
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <div className="bg-green-100 p-1 rounded-full">
-                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          <CheckCircle className="w-4 h-4 text-green-600" />
                       </div>
                       <span className="text-sm font-medium text-green-700">Dati {activeSession.name}</span>
                     </div>
@@ -670,7 +684,10 @@ const App: React.FC = () => {
                 
                 <ResultForm 
                   data={activeSession.extractedData} 
-                  onChange={handleFormChange} 
+                  onChange={handleFormChange}
+                  sessions={sessions}
+                  activeSessionId={activeSessionId}
+                  setActiveSessionId={setActiveSessionId}
                 />
                 
                 <div className="flex gap-3 flex-wrap">
@@ -687,7 +704,7 @@ const App: React.FC = () => {
                         <Loader2 className="w-5 h-5 animate-spin" />
                     ) : activeSession.saveSuccess ? (
                         <>
-                            <CheckCircle2 className="w-4 h-4" /> Salvato
+                            <CheckCircle className="w-4 h-4" /> Salvato
                         </>
                     ) : (
                         <>
@@ -718,59 +735,97 @@ const App: React.FC = () => {
         {/* Global Vault Summary */}
         {savedDocs.length > 0 && (
           <div className="mt-16 pt-8 border-t border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-2 text-slate-800">
-                  <History className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-lg">Archivio Cloud</h3>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <History className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <h3 className="font-semibold text-lg text-slate-900">Archivio Cloud</h3>
+                  <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{savedDocs.length}</span>
                 </div>
 
-                <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
-                  <span className="text-xs text-slate-400 mr-1 flex items-center gap-1">
-                    <Filter className="w-3 h-3" /> Filtra:
-                  </span>
-                  {VAULT_FILTERS.map(filter => (
-                    <button
-                      key={filter}
-                      onClick={() => setVaultFilter(filter)}
-                      className={`
-                        text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors border
-                        ${vaultFilter === filter 
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}
-                      `}
-                    >
-                      {filter}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative group">
+                    <button className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+                      <ArrowUpDown className="w-3 h-3" />
+                      {sortOrder === 'newest' ? 'Più recenti' : sortOrder === 'oldest' ? 'Meno recenti' : 'Per tipo'}
                     </button>
-                  ))}
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-100 shadow-lg rounded-lg py-1 w-32 hidden group-hover:block z-20">
+                      <button onClick={() => setSortOrder('newest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Più recenti</button>
+                      <button onClick={() => setSortOrder('oldest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Meno recenti</button>
+                      <button onClick={() => setSortOrder('type')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Per tipo</button>
+                    </div>
+                  </div>
+
+                  <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
+
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
+                    {VAULT_FILTERS.map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => setVaultFilter(filter)}
+                        className={`
+                          text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors border
+                          ${vaultFilter === filter 
+                            ? 'bg-slate-800 text-white border-slate-800' 
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}
+                        `}
+                      >
+                        {filter}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {filteredDocs.length === 0 ? (
+              {sortedDocs.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                   <p className="text-slate-500 text-sm">Nessun documento trovato nel cloud per "{vaultFilter}"</p>
+                   <p className="text-slate-500 text-sm">Nessun documento trovato per "{vaultFilter}"</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredDocs.map((doc) => (
+                  {sortedDocs.map((savedDoc) => (
                     <div 
-                      key={doc.id} 
-                      onClick={() => handleLoadDoc(doc)}
-                      className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex justify-between items-center hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300 group"
+                      key={savedDoc.id} 
+                      className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group relative"
                     >
-                      <div>
-                        <div className="text-sm font-semibold text-slate-800 flex items-center gap-2 group-hover:text-blue-700">
-                            <Cloud className="w-3 h-3 text-blue-600" /> {doc.summary}
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                           <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                              <FileText className="w-4 h-4" />
+                           </div>
+                           <div>
+                              <p className="text-xs text-slate-400 font-medium">{savedDoc.doc_type}</p>
+                              <p className="text-xs text-slate-300">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
+                           </div>
                         </div>
-                        <div className="text-xs text-slate-400 mt-1">
-                            Salvato il {new Date(doc.created_at).toLocaleDateString()}
+                        <div className="flex gap-1">
+                           <button 
+                             onClick={() => setPreviewDoc(savedDoc)}
+                             className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                             title="Anteprima rapida"
+                           >
+                             <Eye className="w-4 h-4" />
+                           </button>
+                           <button 
+                             onClick={() => setDocToDelete(savedDoc.id)}
+                             className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                             title="Elimina"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </button>
                         </div>
                       </div>
+                      
+                      <h4 className="font-semibold text-slate-800 text-sm mb-3 truncate" title={String(savedDoc.summary)}>
+                        {String(savedDoc.summary)}
+                      </h4>
+
                       <button 
-                        onClick={(e) => handleDeleteRequest(doc.id, e)}
-                        className="bg-slate-50 p-2 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors z-10"
-                        title="Elimina"
+                        onClick={() => handleLoadDoc(savedDoc)}
+                        className="w-full py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        Carica nel workspace
                       </button>
                     </div>
                   ))}
@@ -781,37 +836,6 @@ const App: React.FC = () => {
 
       </main>
 
-      {/* Delete Confirmation Modal */}
-      {deletingDocId && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 animate-fade-in" onClick={() => setDeletingDocId(null)}>
-            <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center gap-3 text-red-600 mb-4">
-                    <div className="bg-red-100 p-2 rounded-full">
-                        <Trash2 className="w-6 h-6" />
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900">Elimina Documento</h3>
-                </div>
-                <p className="text-slate-600 mb-6">
-                    Sei sicuro di voler eliminare definitivamente questo documento dall'archivio? Questa azione non può essere annullata.
-                </p>
-                <div className="flex justify-end gap-3">
-                    <button 
-                        onClick={() => setDeletingDocId(null)}
-                        className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
-                    >
-                        Annulla
-                    </button>
-                    <button 
-                        onClick={confirmDelete}
-                        className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium transition-colors shadow-sm"
-                    >
-                        Elimina
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
-
       {/* Jotform Modal */}
       {activeSession.extractedData && (
         <JotformModal 
@@ -821,15 +845,49 @@ const App: React.FC = () => {
         />
       )}
 
+      {/* Preview Modal */}
+      <PreviewModal previewDoc={previewDoc} onClose={() => setPreviewDoc(null)} onLoad={handleLoadDoc} />
+
+      {/* Delete Confirmation Modal */}
+      {docToDelete && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 animate-fade-in">
+           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm border border-slate-200">
+              <div className="flex items-center gap-3 text-red-600 mb-4">
+                 <AlertCircle className="w-6 h-6" />
+                 <h3 className="text-lg font-bold">Elimina Documento</h3>
+              </div>
+              <p className="text-slate-600 text-sm mb-6">
+                 Sei sicuro di voler eliminare questo documento dall'archivio cloud? Questa azione non può essere annullata.
+              </p>
+              <div className="flex justify-end gap-3">
+                 <button 
+                   onClick={() => setDocToDelete(null)}
+                   className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                 >
+                   Annulla
+                 </button>
+                 <button 
+                   onClick={confirmDelete}
+                   className="px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg text-sm font-medium shadow-md transition-colors"
+                 >
+                   Elimina Definitivamente
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
+         <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
+            <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
+            <p>v0.1.0</p>
+         </div>
+      </footer>
+
       {/* Global Toast Notifications */}
       <ToastContainer position="bottom-right" theme="colored" autoClose={3000} />
-      
-      {/* Version Indicator */}
-      <div className="fixed bottom-2 left-2 text-[10px] text-slate-300 pointer-events-none">
-        v0.2.0-beta
-      </div>
     </div>
   );
-};
+}
 
 export default App;

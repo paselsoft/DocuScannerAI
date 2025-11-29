@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExtractedData } from '../types';
-import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Edit3, Copy, Check, AlertTriangle, CalendarCheck } from 'lucide-react';
+import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck } from 'lucide-react';
 
 interface ResultFormProps {
   data: ExtractedData;
@@ -61,7 +61,7 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           <FileBadge className="w-5 h-5 text-blue-600" />
           Dati Estratti
           <span className="text-xs font-normal text-slate-400 ml-2 flex items-center gap-1">
-            <Edit3 className="w-3 h-3" /> Modificabili
+            <Pencil className="w-3 h-3" /> Modificabili
           </span>
         </h2>
         
