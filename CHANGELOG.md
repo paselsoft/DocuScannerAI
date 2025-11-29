@@ -3,6 +3,13 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.11.0-beta] - 2025-02-24
+### Added
+- **Chat with Document (Chiedi all'AI):** Nuova funzionalità che permette di interrogare Gemini riguardo il documento caricato.
+    - Interfaccia chat dedicata accessibile dalla toolbar.
+    - L'AI ha accesso visivo alle immagini del documento (Fronte/Retro) per rispondere a domande non standard (es. "Ci sono timbri?", "Traduci le note").
+    - Cronologia chat persistente per ogni sessione di lavoro.
+
 ## [0.10.0-beta] - 2025-02-24
 ### Added
 - **Smart Dashboard:** L'archivio cloud è stato completamente ridisegnato per includere informazioni vitali sullo stato del documento.

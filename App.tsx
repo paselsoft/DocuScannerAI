@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 // CSS loaded via CDN in index.html to avoid ESM import issues
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -15,8 +14,9 @@ import { JotformModal } from './components/JotformModal';
 import { PdfThumbnail } from './components/PdfThumbnail';
 import { ResultPreview } from './components/ResultPreview';
 import { PreviewModal } from './components/PreviewModal';
+import { ChatModal } from './components/ChatModal';
 import { 
-  ExtractedData, FileData, ProcessingStatus, DocumentSession 
+  ExtractedData, FileData, ProcessingStatus, DocumentSession, ChatMessage
 } from './types';
 import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64, convertHeicToJpeg } from './services/utils';
@@ -42,7 +42,8 @@ const createEmptySession = (index: number): DocumentSession => ({
   status: ProcessingStatus.IDLE,
   extractedData: null,
   errorMsg: null,
-  saveSuccess: false
+  saveSuccess: false,
+  chatHistory: [] // Init chat
 });
 
 const VAULT_FILTERS = [
@@ -69,6 +70,7 @@ function App() {
 
   const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
   const [isJotformOpen, setIsJotformOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Vault States
@@ -219,7 +221,8 @@ function App() {
         extractedData: null,
         status: ProcessingStatus.IDLE,
         errorMsg: null,
-        saveSuccess: false
+        saveSuccess: false,
+        chatHistory: []
       });
       return;
     }
@@ -342,7 +345,8 @@ function App() {
                backFile: null,
                extractedData: null,
                errorMsg: null,
-               saveSuccess: false
+               saveSuccess: false,
+               chatHistory: []
              };
              newSessions.push(currentBatchSession as DocumentSession);
           } else {
@@ -494,7 +498,8 @@ function App() {
       extractedData: null,
       status: ProcessingStatus.IDLE,
       errorMsg: null,
-      saveSuccess: false
+      saveSuccess: false,
+      chatHistory: []
     });
   };
 
@@ -965,6 +970,16 @@ function App() {
                         </>
                     )}
                   </button>
+
+                  {/* Ask AI Button (Enabled for both scan and archive modes) */}
+                  {(activeSession.frontFile || activeSession.extractedData) && (
+                    <button
+                      onClick={() => setIsChatOpen(true)}
+                      className="flex-1 min-w-[140px] py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    >
+                      <MessageSquareText className="w-4 h-4" /> Chiedi AI
+                    </button>
+                  )}
                   
                   {/* Share button visible only if supported */}
                   {navigator.canShare && (
@@ -978,7 +993,7 @@ function App() {
 
                   <button 
                     onClick={handlePrintPdf}
-                    className="flex-1 min-w-[140px] py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-blue-500 text-white rounded-lg shadow-md shadow-blue-200 hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
                     <Printer className="w-4 h-4" /> Stampa
                   </button>
@@ -1149,6 +1164,21 @@ function App() {
         />
       )}
 
+      {/* Chat Modal */}
+      {/* Condizione corretta: mostra modale se il flag è true e abbiamo dati o file */}
+      {(activeSession.frontFile || activeSession.extractedData) && (
+        <ChatModal
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          sessionName={activeSession.name}
+          frontFile={activeSession.frontFile}
+          backFile={activeSession.backFile}
+          extractedData={activeSession.extractedData} // Pass extracted data for archive mode
+          history={activeSession.chatHistory}
+          onUpdateHistory={(newHistory) => updateActiveSession({ chatHistory: newHistory })}
+        />
+      )}
+
       {/* Preview Modal */}
       <PreviewModal previewDoc={previewDoc} onClose={() => setPreviewDoc(null)} onLoad={handleLoadDoc} />
 
@@ -1184,7 +1214,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.10.0-beta</p>
+            <p>v0.11.0-beta</p>
          </div>
       </footer>
 

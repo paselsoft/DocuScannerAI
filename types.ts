@@ -27,6 +27,12 @@ export enum ProcessingStatus {
   ERROR = 'ERROR'
 }
 
+export interface ChatMessage {
+  role: 'user' | 'ai';
+  text: string;
+  timestamp: number;
+}
+
 export interface DocumentSession {
   id: string;
   name: string; // Es. "Documento 1"
@@ -36,6 +42,7 @@ export interface DocumentSession {
   extractedData: ExtractedData | null;
   errorMsg: string | null;
   saveSuccess: boolean;
+  chatHistory: ChatMessage[];
 }
 
 export interface JotformFieldMapping {

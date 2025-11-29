@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ExtractedData } from "../types";
+import { ExtractedData, ChatMessage } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -107,5 +107,92 @@ export const extractDataFromDocument = async (
         throw new Error("Errore di connessione. Verifica la tua rete.");
     }
     throw error;
+  }
+};
+
+export const askDocumentQuestion = async (
+  question: string,
+  history: ChatMessage[],
+  images?: { 
+    front?: { base64: string, mime: string }, 
+    back?: { base64: string, mime: string } 
+  },
+  contextData?: ExtractedData | null
+): Promise<string> => {
+  try {
+    const parts = [];
+
+    // Context instructions setup based on available data
+    if (images?.front) {
+       // Scenario A: Abbiamo le immagini (Analisi Visiva)
+       parts.push({
+        text: `Sei un assistente esperto in analisi di documenti d'identità e amministrativi.
+        Hai accesso alle immagini del documento (Fronte ed eventuale Retro) fornite qui sotto.
+        Il tuo compito è rispondere alle domande dell'utente basandoti ESCLUSIVAMENTE su ciò che vedi nelle immagini.
+        
+        Se l'informazione non è presente o è illeggibile, dillo chiaramente. Non inventare dati.
+        Sii conciso e diretto.`
+      });
+
+      // Images
+      parts.push({
+        inlineData: {
+          mimeType: images.front.mime,
+          data: images.front.base64
+        }
+      });
+
+      if (images.back) {
+        parts.push({
+          inlineData: {
+            mimeType: images.back.mime,
+            data: images.back.base64
+          }
+        });
+      }
+    } else if (contextData) {
+       // Scenario B: Non abbiamo le immagini, ma abbiamo i dati estratti (Analisi Testuale/Archivio)
+       parts.push({
+         text: `Sei un assistente esperto in analisi di documenti.
+         NON hai accesso alle immagini originali del documento, ma hai accesso ai dati strutturati estratti in precedenza (JSON).
+         
+         Dati Documento:
+         ${JSON.stringify(contextData, null, 2)}
+         
+         Rispondi alle domande dell'utente basandoti su questi dati. Se l'informazione non è presente nei dati JSON, rispondi che non è disponibile nell'archivio.
+         Sii conciso e utile.`
+       });
+    } else {
+       return "Non ho dati sufficienti (immagini o dati estratti) per rispondere.";
+    }
+
+    // History Context
+    if (history.length > 0) {
+      const historyText = history.map(msg => 
+        `${msg.role === 'user' ? 'Utente' : 'AI'}: ${msg.text}`
+      ).join('\n');
+      
+      parts.push({
+        text: `Cronologia della conversazione:\n${historyText}`
+      });
+    }
+
+    // Current Question
+    parts.push({
+      text: `Domanda Utente: ${question}`
+    });
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-pro-preview',
+      contents: {
+        parts: parts
+      }
+    });
+
+    return response.text || "Non sono riuscito a generare una risposta.";
+
+  } catch (error: any) {
+    console.error("Errore chat documento:", error);
+    throw new Error("Impossibile contattare l'assistente AI.");
   }
 };
