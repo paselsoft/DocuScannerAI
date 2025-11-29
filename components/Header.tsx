@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { ScanFace, FileText, LogOut } from 'lucide-react';
 import { supabase } from '../services/supabaseClient';
@@ -5,6 +6,7 @@ import { supabase } from '../services/supabaseClient';
 export const Header: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    window.location.reload(); // Forza reload per pulire cache locale e stato React
   };
 
   return (

@@ -84,39 +84,64 @@ function App() {
         return;
     }
 
+    let mounted = true;
+
     const initApp = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Avvia sincronizzazione chiavi usando l'utente già recuperato
-        await syncMasterKey(session.user);
-        setIsSecurityReady(true);
-      } else {
-        setIsSecurityReady(true); // Se non loggato, la sicurezza è "pronta" (non serve)
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (mounted) {
+          setUser(session?.user ?? null);
+          
+          if (session?.user) {
+            // Avvia sincronizzazione chiavi usando l'utente già recuperato
+            await syncMasterKey(session.user);
+          }
+        }
+      } catch (error) {
+        console.error("Errore inizializzazione:", error);
+      } finally {
+        if (mounted) {
+          // Importante: sblocchiamo SEMPRE l'interfaccia alla fine dell'init
+          setIsSecurityReady(true);
+          setLoadingAuth(false);
+        }
       }
-      
-      setLoadingAuth(false);
     };
 
     initApp();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      // Ignora aggiornamenti token background per evitare loop di loading
+      if (event === 'TOKEN_REFRESHED') {
+        return;
+      }
+
       setUser(session?.user ?? null);
       
-      // FIX: Eseguiamo la sync pesante SOLO se l'utente ha appena fatto Login esplicito.
-      // Ignoriamo TOKEN_REFRESHED e INITIAL_SESSION (gestito da initApp) per evitare loop di loading.
-      if (event === 'SIGNED_IN' && session?.user) {
+      if (event === 'SIGNED_IN') {
+          // Login esplicito: mostra loader e sincronizza
           setLoadingAuth(true);
-          await syncMasterKey(session.user);
+          setIsSecurityReady(false);
+          
+          if (session?.user) {
+             await syncMasterKey(session.user);
+          }
+          
           setIsSecurityReady(true);
           setLoadingAuth(false);
       } else if (event === 'SIGNED_OUT') {
           setIsSecurityReady(false);
+          setUser(null);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [isSupabaseReady]);
 
   // Fetch History only when User AND Security are ready
