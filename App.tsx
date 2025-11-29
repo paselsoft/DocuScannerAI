@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search, CheckSquare, Square
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -22,10 +22,10 @@ import { extractDataFromDocument } from './services/geminiService';
 import { fileToBase64, convertHeicToJpeg } from './services/utils';
 import { supabase, isConfigured, saveSupabaseConfig } from './services/supabaseClient';
 import { 
-  saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument 
+  saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, deleteDocumentsFromDb, SavedDocument 
 } from './services/dbService';
 import { generateLegalizationPdf } from './services/pdfGenerator';
-import { exportToCsv, generateCsvFile } from './services/exportService';
+import { exportToCsv, generateCsvFile, exportMultipleToCsv } from './services/exportService';
 import { syncMasterKey } from './services/security';
 import { scanQrCodeFromImage } from './services/qrService';
 import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
@@ -77,6 +77,7 @@ function App() {
   const [activeSessionId, setActiveSessionId] = useState<string>(sessions[0].id);
 
   const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set()); // Bulk Selection
   const [isJotformOpen, setIsJotformOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -87,6 +88,7 @@ function App() {
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type' | 'expiration'>('newest');
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
   const [docToDelete, setDocToDelete] = useState<string | null>(null);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   // Session Renaming
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -171,6 +173,7 @@ function App() {
           setActiveSessionId(newSession.id);
           
           setSavedDocs([]);
+          setSelectedDocIds(new Set());
       }
     });
 
@@ -573,6 +576,68 @@ function App() {
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
     toast.info("Documento decifrato e caricato.");
+  };
+
+  // --- Bulk Selection Handlers ---
+  const handleToggleSelect = (id: string) => {
+    setSelectedDocIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (filteredDocs: SavedDocument[]) => {
+     if (selectedDocIds.size === filteredDocs.length && filteredDocs.length > 0) {
+        // Deselect all
+        setSelectedDocIds(new Set());
+     } else {
+        // Select all visible
+        setSelectedDocIds(new Set(filteredDocs.map(d => d.id)));
+     }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedDocIds.size === 0) return;
+    if (!window.confirm(`Sei sicuro di voler eliminare ${selectedDocIds.size} documenti?`)) return;
+
+    setIsBulkDeleting(true);
+    try {
+        await deleteDocumentsFromDb(Array.from(selectedDocIds));
+        setSavedDocs(prev => prev.filter(d => !selectedDocIds.has(d.id)));
+        setSelectedDocIds(new Set());
+        toast.success("Documenti eliminati.");
+    } catch (e) {
+        console.error(e);
+        toast.error("Errore durante l'eliminazione multipla.");
+    } finally {
+        setIsBulkDeleting(false);
+    }
+  };
+
+  const handleBulkExport = () => {
+    if (selectedDocIds.size === 0) return;
+    
+    // Filtra i documenti selezionati
+    const docsToExport = savedDocs.filter(d => selectedDocIds.has(d.id));
+    // Filtra quelli con errore (non esportabili)
+    const validDocs = docsToExport.filter(d => !d.is_error);
+
+    if (validDocs.length === 0) {
+        toast.warn("Nessun documento valido selezionato per l'esportazione.");
+        return;
+    }
+
+    try {
+        exportMultipleToCsv(validDocs);
+        toast.success(`Esportati ${validDocs.length} documenti in CSV.`);
+    } catch (e) {
+        toast.error("Errore durante l'esportazione.");
+    }
   };
 
   const confirmDelete = async () => {
@@ -1060,7 +1125,7 @@ function App() {
 
         {/* Global Vault Summary */}
         {savedDocs.length > 0 && (
-          <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700">
+          <div className="mt-16 pt-8 border-t border-slate-200 dark:border-slate-700 pb-24">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
@@ -1071,6 +1136,16 @@ function App() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                  
+                  {/* BULK: Select All */}
+                  <button 
+                    onClick={() => handleSelectAll(sortedDocs)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                     {selectedDocIds.size > 0 && selectedDocIds.size === sortedDocs.length ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
+                     Seleziona Tutto
+                  </button>
+
                   {/* SEARCH BAR */}
                   <div className="relative flex-grow md:flex-grow-0 md:w-64 group">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
@@ -1079,7 +1154,7 @@ function App() {
                         placeholder="Cerca nome, CF, città..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-9 pr-8 py-1.5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-lg border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 dark:focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
+                        className="w-full pl-9 pr-8 py-1.5 bg-white text-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 text-sm focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900 focus:border-blue-400 dark:focus:border-blue-500 outline-none transition-all placeholder:text-slate-400"
                       />
                       {searchQuery && (
                         <button 
@@ -1139,12 +1214,28 @@ function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {sortedDocs.map((savedDoc) => {
                     const expiryInfo = getExpirationInfo(savedDoc.content.data_scadenza);
+                    const isSelected = selectedDocIds.has(savedDoc.id);
                     
                     return (
                       <div 
                         key={savedDoc.id} 
-                        className={`bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm hover:shadow-md transition-all group relative ${savedDoc.is_error ? 'border-red-200 dark:border-red-900 bg-red-50/20' : 'border-slate-200 dark:border-slate-700'}`}
+                        className={`
+                            bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm transition-all group relative cursor-pointer
+                            ${savedDoc.is_error ? 'border-red-200 dark:border-red-900 bg-red-50/20' : 
+                              isSelected ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/50 dark:bg-blue-900/20' : 
+                              'border-slate-200 dark:border-slate-700 hover:shadow-md'}
+                        `}
+                        onClick={() => handleToggleSelect(savedDoc.id)}
                       >
+                        {/* Checkbox Overlay */}
+                        <div className="absolute top-4 right-4 z-20">
+                             {isSelected ? (
+                                 <CheckSquare className="w-5 h-5 text-blue-600 fill-white dark:fill-slate-800" />
+                             ) : (
+                                 <Square className="w-5 h-5 text-slate-300 dark:text-slate-600 hover:text-blue-500 transition-colors" />
+                             )}
+                        </div>
+
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex items-center gap-2">
                             <div className={`p-2 rounded-lg ${savedDoc.is_error ? 'bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400' : savedDoc.is_encrypted ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'}`}>
@@ -1155,9 +1246,11 @@ function App() {
                                 <p className="text-xs text-slate-300 dark:text-slate-600">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
                             </div>
                           </div>
-                          <div className="flex gap-1">
+                          
+                          {/* Standard Actions (Hidden if selecting multiple to avoid clutter, optional) */}
+                          <div className="flex gap-1 pr-6">
                             <button 
-                              onClick={() => setPreviewDoc(savedDoc)}
+                              onClick={(e) => { e.stopPropagation(); setPreviewDoc(savedDoc); }}
                               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                               title="Anteprima rapida"
                               disabled={savedDoc.is_error}
@@ -1165,7 +1258,7 @@ function App() {
                               <Eye className={`w-4 h-4 ${savedDoc.is_error ? 'opacity-50 cursor-not-allowed' : ''}`} />
                             </button>
                             <button 
-                              onClick={() => setDocToDelete(savedDoc.id)}
+                              onClick={(e) => { e.stopPropagation(); setDocToDelete(savedDoc.id); }}
                               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-700 rounded-lg transition-colors"
                               title="Elimina"
                             >
@@ -1203,7 +1296,7 @@ function App() {
                         )}
 
                         <button 
-                          onClick={() => handleLoadDoc(savedDoc)}
+                          onClick={(e) => { e.stopPropagation(); handleLoadDoc(savedDoc); }}
                           className={`w-full py-2 text-xs font-semibold rounded-lg transition-colors ${
                             savedDoc.is_error 
                             ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300 hover:bg-red-200 cursor-not-allowed' 
@@ -1218,6 +1311,43 @@ function App() {
                 </div>
               )}
           </div>
+        )}
+
+        {/* FLOATING ACTION BAR FOR BULK ACTIONS */}
+        {selectedDocIds.size > 0 && (
+           <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-full shadow-2xl z-40 flex items-center gap-6 animate-fade-in border border-slate-700 dark:border-slate-200">
+               <div className="flex items-center gap-2 font-bold text-sm">
+                   <span className="bg-slate-700 dark:bg-slate-200 text-white dark:text-slate-800 w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                       {selectedDocIds.size}
+                   </span>
+                   <span>Selezionati</span>
+               </div>
+               
+               <div className="h-6 w-px bg-slate-700 dark:bg-slate-200"></div>
+
+               <div className="flex items-center gap-3">
+                    <button 
+                        onClick={handleBulkExport}
+                        className="flex items-center gap-2 hover:text-blue-400 dark:hover:text-blue-600 transition-colors text-sm font-medium"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" /> Esporta CSV
+                    </button>
+                    <button 
+                        onClick={handleBulkDelete}
+                        disabled={isBulkDeleting}
+                        className="flex items-center gap-2 hover:text-red-400 dark:hover:text-red-600 transition-colors text-sm font-medium"
+                    >
+                        {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Trash2 className="w-4 h-4" />} Elimina
+                    </button>
+               </div>
+
+               <button 
+                 onClick={() => setSelectedDocIds(new Set())}
+                 className="ml-2 p-1 hover:bg-slate-800 dark:hover:bg-slate-100 rounded-full transition-colors"
+               >
+                   <X className="w-4 h-4" />
+               </button>
+           </div>
         )}
 
       </main>
@@ -1280,7 +1410,7 @@ function App() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400 dark:text-slate-600">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.13.0-beta</p>
+            <p>v0.14.0-beta</p>
          </div>
       </footer>
 

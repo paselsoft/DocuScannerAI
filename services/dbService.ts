@@ -82,3 +82,12 @@ export const deleteDocumentFromDb = async (id: string): Promise<void> => {
 
   if (error) throw error;
 };
+
+export const deleteDocumentsFromDb = async (ids: string[]): Promise<void> => {
+  const { error } = await supabase
+    .from('documents')
+    .delete()
+    .in('id', ids);
+
+  if (error) throw error;
+};

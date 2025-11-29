@@ -1,23 +1,24 @@
 
 import { ExtractedData } from "../types";
+import { SavedDocument } from "./dbService";
 
-const getCsvContent = (data: ExtractedData): string => {
-  const headers = [
-    "Cognome", 
-    "Nome", 
-    "Sesso",
-    "Data Nascita", 
-    "Luogo Nascita", 
-    "Codice Fiscale", 
-    "Tipo Documento", 
-    "Numero Documento", 
-    "Data Scadenza", 
-    "Data Rilascio", 
-    "Indirizzo", 
-    "Città"
-  ];
+const HEADERS = [
+  "Cognome", 
+  "Nome", 
+  "Sesso",
+  "Data Nascita", 
+  "Luogo Nascita", 
+  "Codice Fiscale", 
+  "Tipo Documento", 
+  "Numero Documento", 
+  "Data Scadenza", 
+  "Data Rilascio", 
+  "Indirizzo", 
+  "Città"
+];
 
-  const row = [
+const formatRow = (data: ExtractedData): string => {
+  return [
     data.cognome,
     data.nome,
     data.sesso,
@@ -36,11 +37,13 @@ const getCsvContent = (data: ExtractedData): string => {
         return `"${stringField.replace(/"/g, '""')}"`;
     }
     return stringField;
-  });
+  }).join(',');
+};
 
+const getCsvContent = (data: ExtractedData): string => {
   return [
-    headers.join(','),
-    row.join(',')
+    HEADERS.join(','),
+    formatRow(data)
   ].join('\n');
 };
 
@@ -64,4 +67,23 @@ export const generateCsvFile = (data: ExtractedData): File => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const fileName = `Export_${data.cognome || 'Documento'}.csv`;
     return new File([blob], fileName, { type: 'text/csv' });
+};
+
+// Esportazione Multipla (Bulk)
+export const exportMultipleToCsv = (docs: SavedDocument[]) => {
+  const rows = docs.map(doc => formatRow(doc.content));
+  const csvContent = [HEADERS.join(','), ...rows].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  
+  const date = new Date().toISOString().split('T')[0];
+  link.setAttribute('download', `Export_Multiplo_${date}.csv`);
+  
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

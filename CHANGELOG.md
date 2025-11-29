@@ -3,6 +3,14 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.14.0-beta] - 2025-02-24
+### Added
+- **Bulk Actions (Azioni di Massa):** Gestione avanzata dell'archivio documenti.
+    - **Selezione Multipla:** Checkbox interactive sulle card per selezionare più documenti contemporaneamente.
+    - **Floating Action Bar:** Barra comandi contestuale che appare alla selezione, permettendo azioni rapide.
+    - **Bulk Delete:** Eliminazione di più documenti in un solo click.
+    - **Bulk Export:** Generazione di un unico file CSV riepilogativo contenente tutti i dati dei documenti selezionati.
+
 ## [0.13.0-beta] - 2025-02-24
 ### Added
 - **Dark Mode (Modalità Scura):** Nuova interfaccia completa in modalità scura, ideale per l'uso notturno.
