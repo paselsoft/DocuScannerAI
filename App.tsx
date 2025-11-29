@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -24,6 +24,7 @@ import {
   saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, SavedDocument 
 } from './services/dbService';
 import { generateLegalizationPdf } from './services/pdfGenerator';
+import { exportToCsv } from './services/exportService';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -331,7 +332,7 @@ function App() {
       await saveDocumentToDb(activeSession.extractedData);
       await loadHistory();
       updateActiveSession({ saveSuccess: true });
-      toast.success("Documento salvato nel cloud!");
+      toast.success("Documento salvato e crittografato!");
       setTimeout(() => updateActiveSession({ saveSuccess: false }), 3000);
     } catch (e: any) {
       toast.error(e.message);
@@ -341,6 +342,13 @@ function App() {
   };
 
   const handleLoadDoc = (doc: SavedDocument) => {
+    if (doc.is_error) {
+      toast.error("Impossibile caricare questo documento: la chiave di crittografia è diversa o mancante. Eliminalo e scansionalo di nuovo.", {
+        autoClose: 5000
+      });
+      return;
+    }
+
     updateActiveSession({
       name: doc.summary,
       extractedData: doc.content,
@@ -350,7 +358,7 @@ function App() {
       saveSuccess: true
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    toast.info("Documento caricato.");
+    toast.info("Documento decifrato e caricato.");
   };
 
   const confirmDelete = async () => {
@@ -382,6 +390,13 @@ function App() {
         } catch (e) {
             toast.error("Errore nella generazione del PDF.");
         }
+    }
+  };
+
+  const handleCsvExport = () => {
+    if (activeSession.extractedData) {
+        exportToCsv(activeSession.extractedData);
+        toast.success("File CSV scaricato!");
     }
   };
 
@@ -690,11 +705,11 @@ function App() {
                   setActiveSessionId={setActiveSessionId}
                 />
                 
-                <div className="flex gap-3 flex-wrap">
+                <div className="flex gap-2 flex-wrap">
                   <button 
                     onClick={handleCloudSave}
                     disabled={isSaving || activeSession.saveSuccess}
-                    className={`flex-1 py-3 px-2 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 font-semibold text-sm ${
+                    className={`flex-1 min-w-[140px] py-3 px-2 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 font-semibold text-sm ${
                       activeSession.saveSuccess 
                       ? 'bg-green-600 text-white hover:bg-green-700 shadow-green-200'
                       : 'bg-slate-900 text-white hover:bg-slate-800 shadow-slate-200'
@@ -708,21 +723,28 @@ function App() {
                         </>
                     ) : (
                         <>
-                            <Cloud className="w-4 h-4" /> Salva (Cloud)
+                            <Lock className="w-4 h-4" /> Salva
                         </>
                     )}
                   </button>
                   
                   <button 
                     onClick={handlePrintPdf}
-                    className="flex-1 py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-indigo-600 text-white rounded-lg shadow-md shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
-                    <Printer className="w-4 h-4" /> Stampa Modulo
+                    <Printer className="w-4 h-4" /> Stampa
+                  </button>
+
+                  <button 
+                    onClick={handleCsvExport}
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-emerald-600 text-white rounded-lg shadow-md shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" /> CSV
                   </button>
 
                   <button 
                     onClick={() => setIsJotformOpen(true)}
-                    className="flex-1 py-3 px-2 bg-orange-500 text-white rounded-lg shadow-md shadow-orange-200 hover:bg-orange-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                    className="flex-1 min-w-[140px] py-3 px-2 bg-orange-500 text-white rounded-lg shadow-md shadow-orange-200 hover:bg-orange-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
                   >
                     <Send className="w-4 h-4" /> JotForm
                   </button>
@@ -787,15 +809,15 @@ function App() {
                   {sortedDocs.map((savedDoc) => (
                     <div 
                       key={savedDoc.id} 
-                      className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all group relative"
+                      className={`bg-white p-4 rounded-xl border shadow-sm hover:shadow-md transition-all group relative ${savedDoc.is_error ? 'border-red-200 bg-red-50/20' : 'border-slate-200'}`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-2">
-                           <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                              <FileText className="w-4 h-4" />
+                           <div className={`p-2 rounded-lg ${savedDoc.is_error ? 'bg-red-50 text-red-500' : savedDoc.is_encrypted ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                              {savedDoc.is_error ? <AlertCircle className="w-4 h-4" /> : savedDoc.is_encrypted ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                            </div>
                            <div>
-                              <p className="text-xs text-slate-400 font-medium">{savedDoc.doc_type}</p>
+                              <p className={`text-xs font-medium ${savedDoc.is_error ? 'text-red-400' : 'text-slate-400'}`}>{savedDoc.doc_type || 'Sconosciuto'}</p>
                               <p className="text-xs text-slate-300">{new Date(savedDoc.created_at).toLocaleDateString()}</p>
                            </div>
                         </div>
@@ -804,8 +826,9 @@ function App() {
                              onClick={() => setPreviewDoc(savedDoc)}
                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                              title="Anteprima rapida"
+                             disabled={savedDoc.is_error}
                            >
-                             <Eye className="w-4 h-4" />
+                             <Eye className={`w-4 h-4 ${savedDoc.is_error ? 'opacity-50 cursor-not-allowed' : ''}`} />
                            </button>
                            <button 
                              onClick={() => setDocToDelete(savedDoc.id)}
@@ -817,15 +840,19 @@ function App() {
                         </div>
                       </div>
                       
-                      <h4 className="font-semibold text-slate-800 text-sm mb-3 truncate" title={String(savedDoc.summary)}>
+                      <h4 className={`font-semibold text-sm mb-3 truncate ${savedDoc.is_error ? 'text-red-600' : 'text-slate-800'}`} title={String(savedDoc.summary)}>
                         {String(savedDoc.summary)}
                       </h4>
 
                       <button 
                         onClick={() => handleLoadDoc(savedDoc)}
-                        className="w-full py-2 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        className={`w-full py-2 text-xs font-semibold rounded-lg transition-colors ${
+                          savedDoc.is_error 
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200 cursor-not-allowed' 
+                          : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                        }`}
                       >
-                        Carica nel workspace
+                        {savedDoc.is_error ? "Illeggibile (Elimina)" : savedDoc.is_encrypted ? "Decifra e Carica" : "Carica nel workspace"}
                       </button>
                     </div>
                   ))}
@@ -880,7 +907,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.1.0</p>
+            <p>v0.2.1-beta</p>
          </div>
       </footer>
 
