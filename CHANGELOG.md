@@ -2,6 +2,13 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.7.0-beta] - 2025-02-24
+### Added
+- **PWA (Progressive Web App):** L'applicazione è ora installabile su dispositivi Desktop e Mobile.
+- **Service Worker:** Aggiunto supporto offline di base per velocizzare il caricamento della shell dell'applicazione.
+- **Mobile Experience:** Modalità "Standalone" abilitata: rimuove la barra degli indirizzi del browser su iOS e Android per un look & feel nativo.
+- **Icone:** Aggiunta icona applicazione vettoriale (SVG).
+
 ## [0.6.0-beta] - 2025-02-24
 ### Added
 - **Direct Camera Capture:** Aggiunto un pulsante "Scatta Foto" nell'area di upload.
