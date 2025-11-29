@@ -5,8 +5,20 @@ import { supabase } from '../services/supabaseClient';
 
 export const Header: React.FC = () => {
   const handleLogout = async () => {
+    // 1. Pulizia manuale LocalStorage
+    // Rimuoviamo i token di sessione Supabase (iniziano con sb- e finiscono con -auth-token)
+    // Questo è fondamentale su Cloud Run/Ambienti persistenti dove signOut() asincrono potrebbe non finire prima del reload
+    Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    // 2. Logout servizio (Best effort)
     await supabase.auth.signOut();
-    window.location.reload(); // Forza reload per pulire cache locale e stato React
+    
+    // 3. Forza reload per pulire cache locale e stato React
+    window.location.reload(); 
   };
 
   return (

@@ -119,6 +119,7 @@ function App() {
         return;
       }
 
+      // Aggiorna utente
       setUser(session?.user ?? null);
       
       if (event === 'SIGNED_IN') {
@@ -133,16 +134,36 @@ function App() {
           setIsSecurityReady(true);
           setLoadingAuth(false);
       } else if (event === 'SIGNED_OUT') {
+          // Reset completo stato per evitare UI sporca
           setIsSecurityReady(false);
           setUser(null);
+          
+          const newSession = createEmptySession(0);
+          setSessions([newSession]);
+          setActiveSessionId(newSession.id);
+          
+          setSavedDocs([]);
       }
     });
 
     return () => {
       mounted = false;
+      // Reset preventivo stato
+      setUser(null);
       subscription.unsubscribe();
     };
   }, [isSupabaseReady]);
+
+  // Auto-healing activeSessionId: Assicura che la sessione attiva esista sempre
+  useEffect(() => {
+    if (sessions.length > 0) {
+      const currentSessionExists = sessions.some(s => s.id === activeSessionId);
+      if (!currentSessionExists) {
+        // Se la sessione attiva non esiste più (es. dopo reset), passa alla prima disponibile
+        setActiveSessionId(sessions[0].id);
+      }
+    }
+  }, [sessions, activeSessionId]);
 
   // Fetch History only when User AND Security are ready
   useEffect(() => {
@@ -200,9 +221,7 @@ function App() {
     }
     const newSessions = sessions.filter(s => s.id !== id);
     setSessions(newSessions);
-    if (activeSessionId === id) {
-      setActiveSessionId(newSessions[newSessions.length - 1].id);
-    }
+    // Auto-healing useEffect will handle activeSessionId update if needed
   };
 
   const startRenaming = (session: DocumentSession, e: React.MouseEvent) => {
@@ -400,6 +419,7 @@ function App() {
       return;
     }
 
+    // Assicuriamoci di operare sulla sessione attiva corrente
     updateActiveSession({
       name: doc.summary,
       extractedData: doc.content,
