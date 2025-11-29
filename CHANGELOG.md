@@ -2,6 +2,12 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.5.0-beta] - 2025-02-24
+### Added
+- **Reverse Engineering Codice Fiscale:** Nuova logica matematica (`fiscalCodeUtils`) che permette di estrarre Data di Nascita e Sesso direttamente dal Codice Fiscale.
+- **Data Enrichment:** Se il campo "Sesso" o "Data di Nascita" non viene letto correttamente dall'AI (o se l'immagine è sfocata), l'app lo calcola automaticamente dal CF (estratto via Barcode o OCR).
+- **Nuovo Campo UI:** Aggiunto il campo "Sesso" (M/F) nel form dei risultati e nell'export CSV.
+
 ## [0.4.0-beta] - 2025-02-24
 ### Added
 - **HEIC Support:** Aggiunta integrazione con la libreria `heic2any`. Ora è possibile caricare direttamente foto in formato `.heic` (standard iPhone/Apple).

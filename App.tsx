@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 // CSS loaded via CDN in index.html to avoid ESM import issues
@@ -28,6 +27,7 @@ import { generateLegalizationPdf } from './services/pdfGenerator';
 import { exportToCsv } from './services/exportService';
 import { syncMasterKey } from './services/security';
 import { scanQrCodeFromImage } from './services/qrService';
+import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -402,21 +402,37 @@ function App() {
         activeSession.backFile?.mimeType
       );
       
-      // 3. MERGE DATI (QR vince su AI per CF)
+      // 3. MERGE DATI (QR vince su AI per CF) e REVERSE ENGINEERING CF
       const finalData = { ...data };
       if (qrFiscalCode) {
           finalData.codice_fiscale = qrFiscalCode.toUpperCase();
+      }
+      
+      // Data Enrichment: Calcola Sesso e Data Nascita dal Codice Fiscale
+      if (finalData.codice_fiscale) {
+          const derived = extractInfoFromFiscalCode(finalData.codice_fiscale);
           
-          // Logica euristica per raffinare il tipo documento
-          if (!finalData.tipo_documento || finalData.tipo_documento === "Altro") {
-              // Se abbiamo letto un codice a barre (spesso su TS)
-              if (qrFiscalCode.length === 16) {
-                  // Potrebbe essere CIE o Tessera Sanitaria. 
-                  // Lasciamo decidere all'AI il resto, ma forziamo il CF
+          // Assegna i dati derivati se mancanti o se abbiamo letto il CF da un Barcode (più affidabile dell'OCR)
+          if (derived.sesso) {
+              // Se manca o se abbiamo usato il QR, usiamo quello derivato
+              if (!finalData.sesso || qrFiscalCode) {
+                   finalData.sesso = derived.sesso;
               }
+          }
+          
+          if (derived.data_nascita) {
+               // Se manca o se abbiamo usato il QR, usiamo quello derivato
+               if (!finalData.data_nascita || qrFiscalCode) {
+                   finalData.data_nascita = derived.data_nascita;
+               }
           }
       }
       
+      // Logica euristica per raffinare il tipo documento se abbiamo un CF da barcode
+      if (qrFiscalCode && (!finalData.tipo_documento || finalData.tipo_documento === "Altro")) {
+           // Lasciamo come Altro o proviamo a indovinare, ma per ora la logica è sufficiente nel prompt
+      }
+
       updateActiveSession({ 
         extractedData: finalData, 
         status: ProcessingStatus.SUCCESS 
@@ -1051,7 +1067,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.4.0-beta</p>
+            <p>v0.5.0-beta</p>
          </div>
       </footer>
 

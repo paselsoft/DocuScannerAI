@@ -5,6 +5,7 @@ export const exportToCsv = (data: ExtractedData) => {
   const headers = [
     "Cognome", 
     "Nome", 
+    "Sesso",
     "Data Nascita", 
     "Luogo Nascita", 
     "Codice Fiscale", 
@@ -20,6 +21,7 @@ export const exportToCsv = (data: ExtractedData) => {
   const row = [
     data.cognome,
     data.nome,
+    data.sesso,
     data.data_nascita,
     data.luogo_nascita,
     data.codice_fiscale,

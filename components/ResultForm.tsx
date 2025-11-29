@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExtractedData } from '../types';
-import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck } from 'lucide-react';
+import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck, Users } from 'lucide-react';
 
 interface ResultFormProps {
   data: ExtractedData;
@@ -105,6 +105,15 @@ export const ResultForm: React.FC<ResultFormProps> = ({
         />
 
         <FieldInput 
+          label="Sesso"
+          icon={Users}
+          value={data.sesso}
+          onChange={handleChange('sesso')}
+          placeholder="M / F"
+          className="uppercase"
+        />
+
+        <FieldInput 
           label="Data di Nascita"
           icon={Calendar}
           value={data.data_nascita}
@@ -114,12 +123,14 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           warningMessage="Formato atteso: GG/MM/AAAA"
         />
 
-        <FieldInput 
-          label="Luogo di Nascita"
-          icon={MapPin}
-          value={data.luogo_nascita}
-          onChange={handleChange('luogo_nascita')}
-        />
+        <div className="md:col-span-2">
+           <FieldInput 
+            label="Luogo di Nascita"
+            icon={MapPin}
+            value={data.luogo_nascita}
+            onChange={handleChange('luogo_nascita')}
+          />
+        </div>
 
         <div className="md:col-span-2">
             <FieldInput 

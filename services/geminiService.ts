@@ -49,6 +49,7 @@ export const extractDataFromDocument = async (
       - Cerca il numero identificativo del documento.
       - Cerca la Data di Scadenza (spesso indicata come 4b sulla patente).
       - Cerca la Data di Rilascio (spesso indicata come 4a sulla patente o "Rilasciata il" sulla Carta d'Identità).
+      - Estrai il Sesso (M/F) se presente.
       - Se un campo non è leggibile o presente in nessuna delle immagini, lascia la stringa vuota.
       - Formatta tutte le date come GG/MM/AAAA.
       - Separa l'indirizzo dalla città.
@@ -70,6 +71,7 @@ export const extractDataFromDocument = async (
             nome: { type: Type.STRING, description: "Il nome della persona" },
             data_nascita: { type: Type.STRING, description: "Data di nascita in formato GG/MM/AAAA" },
             luogo_nascita: { type: Type.STRING, description: "Luogo o comune di nascita" },
+            sesso: { type: Type.STRING, description: "Sesso (M o F)" },
             indirizzo_residenza: { type: Type.STRING, description: "Indirizzo di residenza (via e numero civico)" },
             citta_residenza: { type: Type.STRING, description: "Città o Comune di residenza" },
             codice_fiscale: { type: Type.STRING, description: "Codice Fiscale se presente" },
