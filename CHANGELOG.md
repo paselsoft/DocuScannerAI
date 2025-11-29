@@ -3,12 +3,20 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.12.0-beta] - 2025-02-24
+### Added
+- **Global Search (Ricerca Globale):**
+    - Nuova barra di ricerca nell'intestazione dell'Archivio Cloud.
+    - Filtro in tempo reale su **tutti** i campi del documento (Nome, Cognome, CF, Città, Numero Documento).
+    - Permette di trovare istantaneamente una pratica specifica anche in archivi molto grandi.
+
 ## [0.11.0-beta] - 2025-02-24
 ### Added
 - **Chat with Document (Chiedi all'AI):** Nuova funzionalità che permette di interrogare Gemini riguardo il documento caricato.
     - Interfaccia chat dedicata accessibile dalla toolbar.
     - L'AI ha accesso visivo alle immagini del documento (Fronte/Retro) per rispondere a domande non standard (es. "Ci sono timbri?", "Traduci le note").
     - Cronologia chat persistente per ogni sessione di lavoro.
+    - **Supporto Archivio:** La chat funziona anche con i documenti caricati dall'archivio (senza immagini), utilizzando i dati estratti come contesto.
 
 ## [0.10.0-beta] - 2025-02-24
 ### Added

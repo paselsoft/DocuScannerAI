@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -74,6 +74,7 @@ function App() {
   const [isSaving, setIsSaving] = useState(false);
 
   // Vault States
+  const [searchQuery, setSearchQuery] = useState("");
   const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type' | 'expiration'>('newest');
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
@@ -628,9 +629,28 @@ function App() {
   const getFilteredAndSortedDocs = () => {
     let result = savedDocs;
 
-    // Filter
+    // Filter by Type
     if (vaultFilter !== "Tutti") {
       result = result.filter(doc => doc.doc_type === vaultFilter);
+    }
+
+    // Filter by Search Query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(doc => {
+        // Search in summary
+        if (doc.summary.toLowerCase().includes(q)) return true;
+        
+        // Search in extracted content fields (safe access)
+        const content = doc.content;
+        return (
+          content.nome?.toLowerCase().includes(q) ||
+          content.cognome?.toLowerCase().includes(q) ||
+          content.codice_fiscale?.toLowerCase().includes(q) ||
+          content.numero_documento?.toLowerCase().includes(q) ||
+          content.citta_residenza?.toLowerCase().includes(q)
+        );
+      });
     }
 
     // Sort
@@ -1029,44 +1049,70 @@ function App() {
                   <span className="text-xs font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{savedDocs.length}</span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative group">
-                    <button className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
-                      <ArrowUpDown className="w-3 h-3" />
-                      {sortOrder === 'newest' ? 'Più recenti' : sortOrder === 'oldest' ? 'Meno recenti' : sortOrder === 'expiration' ? 'Per scadenza' : 'Per tipo'}
-                    </button>
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-100 shadow-lg rounded-lg py-1 w-36 hidden group-hover:block z-20">
-                      <button onClick={() => setSortOrder('newest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Più recenti</button>
-                      <button onClick={() => setSortOrder('oldest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Meno recenti</button>
-                      <button onClick={() => setSortOrder('expiration')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700 flex justify-between items-center">Per scadenza <CalendarClock className="w-3 h-3 text-slate-400"/></button>
-                      <button onClick={() => setSortOrder('type')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Per tipo</button>
-                    </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                  {/* SEARCH BAR */}
+                  <div className="relative flex-grow md:flex-grow-0 md:w-64 group">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                      <input 
+                        type="text" 
+                        placeholder="Cerca nome, CF, città..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-8 py-1.5 bg-white text-slate-900 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none transition-all"
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={() => setSearchQuery("")}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                        >
+                           <X className="w-3 h-3" />
+                        </button>
+                      )}
                   </div>
 
                   <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
-                    {VAULT_FILTERS.map(filter => (
-                      <button
-                        key={filter}
-                        onClick={() => setVaultFilter(filter)}
-                        className={`
-                          text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors border
-                          ${vaultFilter === filter 
-                            ? 'bg-slate-800 text-white border-slate-800' 
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}
-                        `}
-                      >
-                        {filter}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-3">
+                    <div className="relative group">
+                        <button className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 transition-colors">
+                        <ArrowUpDown className="w-3 h-3" />
+                        {sortOrder === 'newest' ? 'Più recenti' : sortOrder === 'oldest' ? 'Meno recenti' : sortOrder === 'expiration' ? 'Per scadenza' : 'Per tipo'}
+                        </button>
+                        <div className="absolute right-0 top-full mt-1 bg-white border border-slate-100 shadow-lg rounded-lg py-1 w-36 hidden group-hover:block z-20">
+                        <button onClick={() => setSortOrder('newest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Più recenti</button>
+                        <button onClick={() => setSortOrder('oldest')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Meno recenti</button>
+                        <button onClick={() => setSortOrder('expiration')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700 flex justify-between items-center">Per scadenza <CalendarClock className="w-3 h-3 text-slate-400"/></button>
+                        <button onClick={() => setSortOrder('type')} className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-50 text-slate-700">Per tipo</button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
+                        {VAULT_FILTERS.map(filter => (
+                        <button
+                            key={filter}
+                            onClick={() => setVaultFilter(filter)}
+                            className={`
+                            text-xs font-medium px-3 py-1.5 rounded-full whitespace-nowrap transition-colors border
+                            ${vaultFilter === filter 
+                                ? 'bg-slate-800 text-white border-slate-800' 
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}
+                            `}
+                        >
+                            {filter}
+                        </button>
+                        ))}
+                    </div>
                   </div>
                 </div>
               </div>
 
               {sortedDocs.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                   <p className="text-slate-500 text-sm">Nessun documento trovato per "{vaultFilter}"</p>
+                   <p className="text-slate-500 text-sm">
+                       {searchQuery 
+                         ? `Nessun risultato per "${searchQuery}"`
+                         : `Nessun documento trovato per "${vaultFilter}"`}
+                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1214,7 +1260,7 @@ function App() {
       <footer className="bg-white border-t border-slate-200 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.11.0-beta</p>
+            <p>v0.12.0-beta</p>
          </div>
       </footer>
 
