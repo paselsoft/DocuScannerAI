@@ -348,7 +348,7 @@ function App() {
         saveSuccess: false 
       });
 
-      // 1. TENTATIVO SCANSIONE QR CODE (Fallback Locale & Validazione)
+      // 1. TENTATIVO SCANSIONE QR CODE / BARCODE (Fallback Locale & Validazione)
       let qrFiscalCode: string | null = null;
       try {
           const frontQr = await scanQrCodeFromImage(activeSession.frontFile.file);
@@ -362,11 +362,11 @@ function App() {
           }
           
           if (qrFiscalCode) {
-              console.log("QR Code Rilevato (CF):", qrFiscalCode);
-              toast.success("QR Code rilevato: Codice Fiscale estratto!", { autoClose: 2000 });
+              console.log("Barcode/QR Code Rilevato (CF):", qrFiscalCode);
+              toast.success("Codice a barre/QR rilevato: Codice Fiscale estratto!", { autoClose: 2000 });
           }
       } catch (e) {
-          console.warn("Errore scansione QR (ignorato):", e);
+          console.warn("Errore scansione QR/Barcode (ignorato):", e);
       }
       
       // 2. CHIAMATA AI (Gemini)
@@ -381,9 +381,14 @@ function App() {
       const finalData = { ...data };
       if (qrFiscalCode) {
           finalData.codice_fiscale = qrFiscalCode.toUpperCase();
-          // Se abbiamo trovato un QR sulla CIE, siamo quasi certi che sia una CIE
+          
+          // Logica euristica per raffinare il tipo documento
           if (!finalData.tipo_documento || finalData.tipo_documento === "Altro") {
-              finalData.tipo_documento = "Carta d'Identità";
+              // Se abbiamo letto un codice a barre (spesso su TS)
+              if (qrFiscalCode.length === 16) {
+                  // Potrebbe essere CIE o Tessera Sanitaria. 
+                  // Lasciamo decidere all'AI il resto, ma forziamo il CF
+              }
           }
       }
       
