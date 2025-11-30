@@ -3,8 +3,86 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.19.10-beta] - 2025-02-24
+### Fixed
+- **PDF Layout Separation:** Modificato radicalmente il posizionamento degli elementi nel PDF "Legalizzazione".
+    - Il riquadro FOTO è stato spostato in alto (`y=65`) per occupare lo spazio tra il Titolo e il testo.
+    - Il testo "Si legalizza la foto di..." è stato spostato significativamente in basso (`y=120`) per distanziarlo chiaramente dalla foto.
+    - Il footer è stato riadattato (`y=220`) per seguire il flusso del testo.
+
+## [0.19.9-beta] - 2025-02-24
+### Fixed
+- **PDF Legalizzazione (Vertical Balancing):** 
+    - Aumentato lo spazio tra l'intestazione e l'inizio del modulo (spostato contenuto giù a `y=105`).
+    - Ridotto lo spazio vuoto in fondo alla pagina, alzando il footer legale e la firma (spostato su a `y=200`).
+    - Il risultato finale è un layout molto più equilibrato e professionale.
+
+## [0.19.8-beta] - 2025-02-24
+### Fixed
+- **PDF Layout Fine Tuning:** Ulteriore perfezionamento del modulo Legalizzazione.
+    - Spostato il riquadro foto in alto (`y=70`) per posizionarlo nello spazio tra il titolo e l'inizio del testo.
+    - Ridotto significativamente lo spazio vuoto in fondo alla pagina spostando il footer e la firma verso l'alto (`y=230`).
+
+## [0.19.7-beta] - 2025-02-24
+### Fixed
+- **PDF Layout Spacing:** Aumentato significativamente lo spazio verticale (`startY=90`) tra l'intestazione ("LEGALIZZAZIONE DI FOTOGRAFIA") e l'inizio del modulo ("Si legalizza la foto di...").
+    - Il riquadro della foto e i dati anagrafici sono stati traslati verso il basso per centrare meglio il contenuto nella pagina e migliorare la leggibilità.
+
+## [0.19.6-beta] - 2025-02-24
+### Fixed
+- **PDF Layout Refinement:** Ulteriore perfezionamento del modulo "Legalizzazione di Fotografia".
+    - Risolto disallineamento visivo: Il testo "Si legalizza la foto di :" è ora perfettamente allineato con il bordo superiore del riquadro foto.
+    - Layout compattato: Ridotti ulteriormente gli spazi verticali per una maggiore densità e fedeltà al modulo originale.
+    - Allungate le linee di compilazione per sfruttare meglio la larghezza della pagina.
+
+## [0.19.5-beta] - 2025-02-24
+### Fixed
+- **PDF Layout Compact:** Ottimizzato il modulo PDF "Legalizzazione".
+    - Ridotta drasticamente l'interlinea tra le sezioni (Nomi, Nascita, Documento, Rilascio).
+    - Il modulo risulta ora più compatto e simile al documento originale, risolvendo il problema degli spazi eccessivi tra le righe.
+
+## [0.19.4-beta] - 2025-02-24
+### Fixed
+- **PDF Layout Legalizzazione:** Riprogettato completamente il modulo PDF di "Legalizzazione di Fotografia".
+    - Il riquadro della fototessera è stato spostato a destra per evitare sovrapposizioni con i dati anagrafici.
+    - Le linee per Cognome e Nome sono state ridimensionate e allineate a sinistra per rispettare il layout del documento originale della Motorizzazione.
+    - Migliorata la spaziatura verticale delle sezioni.
+
+## [0.19.3-beta] - 2025-02-24
+### Fixed
+- **Custom Delete Modal:** Sostituito il dialogo nativo `window.confirm` con un modale personalizzato per l'eliminazione dei documenti.
+    - Questo risolve problemi di compatibilità su browser specifici (es. Firefox/Mac) dove il popup nativo poteva essere bloccato o non apparire correttamente, impedendo l'eliminazione.
+    - Interfaccia coerente con il tema dell'applicazione (Dark/Light mode).
+    - Supporto per conferma eliminazione singola e multipla.
+
+## [0.19.2-beta] - 2025-02-24
+### Fixed
+- **UI Interaction Fix:** Risolto definitivamente il problema dei pulsanti "Elimina" sulle card che non rispondevano al click.
+    - Aggiunto `type="button"` esplicito per prevenire conflitti con form browser.
+    - Semplificata la logica di aggiornamento stato per garantire la reattività dell'interfaccia.
+    - Utilizzo di `window.confirm` per evitare blocchi nei dialoghi di conferma.
+
+## [0.19.1-beta] - 2025-02-24
+### Fixed
+- **Eliminazione Documenti:** Risolto un bug di "Race Condition" che impediva visivamente l'eliminazione dei documenti.
+    - Implementata **Optimistic UI**: Il documento viene rimosso immediatamente dall'interfaccia al click, garantendo un feedback istantaneo all'utente, senza attendere la conferma del database.
+    - Se l'eliminazione fallisce sul server, il documento viene ripristinato automaticamente e viene mostrato un errore.
+
+## [0.19.0-beta] - 2025-02-24
+### Added
+- **Calendar Integration (.ics):** Nuova funzionalità "Esporta nel Calendario".
+    - Permette di scaricare un file evento (.ics) compatibile con Google Calendar, Apple Calendar e Outlook.
+    - L'evento include automaticamente:
+        - Titolo standardizzato: "Scadenza [Tipo Doc] - [Nome]".
+        - Data esatta di scadenza (evento tutto il giorno).
+        - **Promemoria intelligenti:** Notifica automatica 1 settimana prima e 1 giorno prima della scadenza.
+    - Pulsante aggiunto sia nella toolbar dei risultati post-scansione che nelle card dell'archivio.
+
 ## [0.18.0-beta] - 2025-02-24
-### Security
+### Added
+- **Gestione Cronologia Chat:**
+    - Aggiunto pulsante "Cestino" all'interno della Chat AI per resettare la conversazione corrente e iniziare un nuovo contesto.
+    - La cronologia della chat viene ora pulita automaticamente quando si inizia una nuova scansione ("Nuovo Documento") per evitare contaminazioni tra sessioni diverse.
 - **Hardcoded Credentials Removal:** Rimosse email e password precompilate dal form di login per maggiore sicurezza.
 - **User Settings:** Nuovo pannello di impostazioni utente accessibile dall'Header.
 - **Change Password:** Aggiunta funzionalità per cambiare la password dell'account direttamente dall'applicazione.
@@ -59,7 +137,7 @@ Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo fil
 ### Added
 - **Chat with Document (Chiedi all'AI):** Nuova funzionalità che permette di interrogare Gemini riguardo il documento caricato.
     - Interfaccia chat dedicata accessibile dalla toolbar.
-    - L'AI ha accesso visivo alle immagini del documento (Fronte/Retro) per rispondere a domande non standard (es. "Ci sono timbri?", "Traduci le note").
+    - L'AI ha accesso visivo alle immagini del documento (Fronte/Retro) per rispondere a domande non standard (es. "Ci sono firme?", "Traduci le note").
     - Cronologia chat persistente per ogni sessione di lavoro.
     - **Supporto Archivio:** La chat funziona anche con i documenti caricati dall'archivio (senza immagini), utilizzando i dati estratti come contesto.
 
@@ -69,8 +147,8 @@ Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo fil
 - **Expiration Monitor:** Nuova logica (`dateUtils`) che calcola i giorni rimanenti alla scadenza di ogni documento.
 - **Visual Badges:** Le card dei documenti ora mostrano badge colorati:
     - 🔴 **Scaduto:** Il documento non è più valido.
-    - 🟡 **In Scadenza:** Mancano meno di 90 giorni.
     - 🟢 **Valido:** Il documento è in regola.
+    - 🟡 **In Scadenza:** Mancano meno di 90 giorni.
 - **Sorting:** Aggiunta nuova opzione di ordinamento "Per Scadenza" per visualizzare immediatamente i documenti che richiedono attenzione.
 
 ## [0.9.0-beta] - 2025-02-24

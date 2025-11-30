@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Send, Bot, User as UserIcon, Loader2, Image as ImageIcon, FileText } from 'lucide-react';
+import { X, Send, Bot, User as UserIcon, Loader2, Image as ImageIcon, FileText, Trash2 } from 'lucide-react';
 import { ChatMessage, FileData, ExtractedData } from '../types';
 import { askDocumentQuestion } from '../services/geminiService';
 
@@ -87,6 +87,12 @@ export const ChatModal: React.FC<ChatModalProps> = ({
     }
   };
 
+  const handleReset = () => {
+    if (confirm("Vuoi cancellare la cronologia della chat?")) {
+      onUpdateHistory([]);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -108,12 +114,22 @@ export const ChatModal: React.FC<ChatModalProps> = ({
               </div>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={handleReset}
+              className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+              title="Resetta conversazione"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Chat Area */}

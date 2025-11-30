@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScanFace, FileText, Moon, Sun, User } from 'lucide-react';
+import { ScanFace, FileText, Moon, Sun, Settings, User } from 'lucide-react';
 
 interface HeaderProps {
   isDarkMode: boolean;
@@ -37,15 +37,13 @@ export const Header: React.FC<HeaderProps> = ({ isDarkMode, toggleTheme, onOpenS
           
           <button 
             onClick={onOpenSettings}
-            className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors border border-slate-200 dark:border-slate-700"
+            className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full transition-colors group"
             title="Impostazioni Utente"
           >
-            <div className="w-6 h-6 bg-slate-300 dark:bg-slate-600 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-200 font-bold text-xs">
-               {userEmail ? userEmail.charAt(0).toUpperCase() : <User className="w-3 h-3" />}
-            </div>
-            <span className="text-xs font-medium text-slate-700 dark:text-slate-300 max-w-[100px] truncate hidden sm:block">
-                {userEmail || 'Utente'}
-            </span>
+             <div className="w-7 h-7 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+               {userEmail ? userEmail.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+             </div>
+             <Settings className="w-4 h-4 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300" />
           </button>
         </div>
       </div>
