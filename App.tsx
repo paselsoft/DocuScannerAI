@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 // CSS loaded via CDN in index.html to avoid ESM import issues
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search, CheckSquare, Square, Tag
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search, CheckSquare, Square, Tag, ChevronDown, BookOpen
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -24,7 +24,7 @@ import { supabase, isConfigured, saveSupabaseConfig } from './services/supabaseC
 import { 
   saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, deleteDocumentsFromDb, SavedDocument 
 } from './services/dbService';
-import { generateLegalizationPdf } from './services/pdfGenerator';
+import { generateLegalizationPdf, generateDataSheetPdf } from './services/pdfGenerator';
 import { exportToCsv, generateCsvFile, exportMultipleToCsv } from './services/exportService';
 import { syncMasterKey } from './services/security';
 import { scanQrCodeFromImage } from './services/qrService';
@@ -82,6 +82,7 @@ function App() {
   const [isJotformOpen, setIsJotformOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPdfMenuOpen, setIsPdfMenuOpen] = useState(false);
 
   // Vault States
   const [searchQuery, setSearchQuery] = useState("");
@@ -663,10 +664,15 @@ function App() {
     }
   };
 
-  const handlePrintPdf = () => {
+  const handlePrintPdf = (type: 'legalization' | 'datasheet') => {
+    setIsPdfMenuOpen(false); // Close menu
     if (activeSession.extractedData) {
         try {
-            generateLegalizationPdf(activeSession.extractedData);
+            if (type === 'datasheet') {
+                 generateDataSheetPdf(activeSession.extractedData);
+            } else {
+                 generateLegalizationPdf(activeSession.extractedData);
+            }
             toast.success("PDF generato correttamente!");
         } catch (e) {
             toast.error("Errore nella generazione del PDF.");
@@ -1112,12 +1118,33 @@ function App() {
                       </button>
                   )}
 
-                  <button 
-                    onClick={handlePrintPdf}
-                    className="flex-1 min-w-[140px] py-3 px-2 bg-blue-500 text-white rounded-lg shadow-md shadow-blue-200 dark:shadow-none hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
-                  >
-                    <Printer className="w-4 h-4" /> Stampa
-                  </button>
+                  {/* PDF Print Dropdown */}
+                  <div className="relative flex-1 min-w-[140px]">
+                      <button 
+                        onClick={() => setIsPdfMenuOpen(!isPdfMenuOpen)}
+                        className="w-full py-3 px-2 bg-blue-500 text-white rounded-lg shadow-md shadow-blue-200 dark:shadow-none hover:bg-blue-600 transition-all flex items-center justify-center gap-2 font-semibold text-sm"
+                      >
+                        <Printer className="w-4 h-4" /> Stampa
+                        <ChevronDown className="w-3 h-3 opacity-80" />
+                      </button>
+                      
+                      {isPdfMenuOpen && (
+                          <div className="absolute bottom-full mb-2 left-0 w-full bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-100 dark:border-slate-700 overflow-hidden z-20 animate-fade-in">
+                              <button 
+                                  onClick={() => handlePrintPdf('datasheet')}
+                                  className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-2 border-b border-slate-100 dark:border-slate-700"
+                              >
+                                  <BookOpen className="w-4 h-4 text-blue-500" /> Scheda Dati
+                              </button>
+                              <button 
+                                  onClick={() => handlePrintPdf('legalization')}
+                                  className="w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-2"
+                              >
+                                  <FileText className="w-4 h-4 text-slate-500" /> Legalizzazione
+                              </button>
+                          </div>
+                      )}
+                  </div>
 
                   <button 
                     onClick={handleCsvExport}
@@ -1461,7 +1488,7 @@ function App() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400 dark:text-slate-600">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.15.0-beta</p>
+            <p>v0.16.0-beta</p>
          </div>
       </footer>
 

@@ -1,13 +1,14 @@
 
 # DocuScanner AI
 
-**Versione:** 0.15.0-beta
+**Versione:** 0.16.0-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
 ## Caratteristiche Principali
 
-*   **Custom Tags (Novità):** Organizza i documenti con etichette personalizzate (es. "Lavoro", "Banca"). I tag sono colorati automaticamente e crittografati E2EE per la massima privacy.
+*   **PDF Data Sheet (Novità):** Genera una scheda riepilogativa professionale con tutti i dati del documento, pronta per la stampa o l'invio via email.
+*   **Custom Tags:** Organizza i documenti con etichette personalizzate (es. "Lavoro", "Banca"). I tag sono colorati automaticamente e crittografati E2EE per la massima privacy.
 *   **Bulk Actions:** Gestione massiva dell'archivio. Selezione multipla, eliminazione di gruppo ed esportazione CSV cumulativa.
 *   **Dark Mode:** Interfaccia completa in modalità scura per uso notturno, con toggle istantaneo e persistenza della preferenza.
 *   **Global Search:** Ricerca istantanea nell'intero archivio documenti (trova per Nome, CF, Città, ecc.).

@@ -154,3 +154,116 @@ export const generateLegalizationPdf = (data: ExtractedData) => {
   // Save
   doc.save(`Legalizzazione_${data.cognome || 'Foto'}.pdf`);
 };
+
+export const generateDataSheetPdf = (data: ExtractedData) => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.width;
+
+  // --- Colori e Font ---
+  const primaryColor = '#2563eb'; // Blue 600
+  const secondaryColor = '#475569'; // Slate 600
+  const lightBg = '#f1f5f9'; // Slate 100
+
+  // --- Header ---
+  doc.setFillColor(primaryColor);
+  doc.rect(0, 0, pageWidth, 30, 'F');
+  
+  doc.setTextColor('#ffffff');
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.text("Scheda Dati Documento", 20, 20);
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Generato da DocuScanner AI - ${new Date().toLocaleDateString('it-IT')}`, 20, 26);
+
+  let y = 50;
+
+  // Helper per sezioni
+  const addSectionTitle = (title: string, yPos: number) => {
+      doc.setFillColor(lightBg);
+      doc.rect(20, yPos - 6, pageWidth - 40, 10, 'F');
+      doc.setTextColor(primaryColor);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(title.toUpperCase(), 22, yPos);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, yPos + 6, pageWidth - 20, yPos + 6);
+      return yPos + 15;
+  };
+
+  // Helper per campi
+  const addField = (label: string, value: string | undefined, xPos: number, yPos: number, fullWidth = false) => {
+      doc.setTextColor(secondaryColor);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.text(label.toUpperCase(), xPos, yPos);
+      
+      doc.setTextColor('#000000');
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      const textVal = value || '-';
+      doc.text(textVal, xPos, yPos + 6);
+
+      // Linea sottile sotto il campo
+      doc.setDrawColor(230, 230, 230);
+      const lineWidth = fullWidth ? pageWidth - 40 : (pageWidth - 50) / 2;
+      doc.line(xPos, yPos + 9, xPos + lineWidth, yPos + 9);
+  };
+
+  // --- Sezione 1: Dati Personali ---
+  y = addSectionTitle("Dati Personali", y);
+  
+  addField("Cognome", data.cognome, 20, y);
+  addField("Nome", data.nome, 110, y);
+  y += 20;
+
+  addField("Sesso", data.sesso, 20, y);
+  addField("Codice Fiscale", data.codice_fiscale, 110, y);
+  y += 20;
+
+  addField("Data di Nascita", data.data_nascita, 20, y);
+  addField("Luogo di Nascita", data.luogo_nascita, 110, y);
+  y += 25;
+
+  // --- Sezione 2: Dati Documento ---
+  y = addSectionTitle("Dettagli Documento", y);
+
+  addField("Tipo Documento", data.tipo_documento, 20, y);
+  addField("Numero Documento", data.numero_documento, 110, y);
+  y += 20;
+
+  addField("Data Rilascio", data.data_rilascio, 20, y);
+  addField("Data Scadenza", data.data_scadenza, 110, y);
+  y += 25;
+
+  // --- Sezione 3: Residenza ---
+  y = addSectionTitle("Residenza", y);
+
+  addField("Indirizzo", data.indirizzo_residenza, 20, y, true);
+  y += 20;
+  addField("Città", data.citta_residenza, 20, y, true);
+  y += 25;
+
+  // --- Sezione 4: Tag & Note (Se presenti) ---
+  if (data.tags && data.tags.length > 0) {
+      y = addSectionTitle("Etichette", y);
+      doc.setTextColor('#000000');
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(data.tags.join(', '), 20, y);
+      y += 20;
+  }
+
+  // --- Footer ---
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
+  
+  doc.setFontSize(8);
+  doc.setTextColor(secondaryColor);
+  doc.text("Documento generato automaticamente. Verificare i dati prima dell'uso.", 20, pageHeight - 12);
+  doc.text("DocuScanner AI", pageWidth - 20, pageHeight - 12, { align: 'right' });
+
+  doc.save(`Scheda_${data.cognome || 'Documento'}.pdf`);
+};

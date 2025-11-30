@@ -3,6 +3,15 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.16.0-beta] - 2025-02-24
+### Added
+- **Data Sheet PDF (Scheda Dati):** Nuova opzione di esportazione PDF.
+    - Genera una scheda riepilogativa professionale con tutti i dati estratti (Anagrafica, Documento, Scadenze).
+    - Layout tabellare pulito e moderno, ideale per l'invio via email o la stampa.
+- **Advanced Print Menu:** Il pulsante "Stampa" ora apre un menu a tendina che permette di scegliere tra:
+    - **Scheda Dati:** Il nuovo formato riepilogativo.
+    - **Legalizzazione Foto:** Il formato classico per pratiche burocratiche.
+
 ## [0.15.0-beta] - 2025-02-24
 ### Added
 - **Custom Tags (Tag Personalizzati):** Possibilità di etichettare i documenti.
