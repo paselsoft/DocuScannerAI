@@ -3,6 +3,13 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.17.0-beta] - 2025-02-24
+### Added
+- **Archive Statistics Widget:** Nuova barra di riepilogo nell'archivio cloud.
+    - Visualizza a colpo d'occhio il totale dei documenti.
+    - Evidenzia il numero di documenti scaduti (Rosso).
+    - Segnala i documenti in scadenza entro 30 giorni (Giallo/Urgenti) per facilitare la gestione delle priorità.
+
 ## [0.16.0-beta] - 2025-02-24
 ### Added
 - **Data Sheet PDF (Scheda Dati):** Nuova opzione di esportazione PDF.

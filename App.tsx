@@ -15,6 +15,7 @@ import { PdfThumbnail } from './components/PdfThumbnail';
 import { ResultPreview } from './components/ResultPreview';
 import { PreviewModal } from './components/PreviewModal';
 import { ChatModal } from './components/ChatModal';
+import { StatsWidget } from './components/StatsWidget';
 import { 
   ExtractedData, FileData, ProcessingStatus, DocumentSession, ChatMessage
 } from './types';
@@ -1261,6 +1262,9 @@ function App() {
                 </div>
               </div>
 
+              {/* STATS WIDGET */}
+              <StatsWidget docs={savedDocs} />
+
               {sortedDocs.length === 0 ? (
                 <div className="text-center py-12 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
                    <p className="text-slate-500 dark:text-slate-400 text-sm">
@@ -1488,7 +1492,7 @@ function App() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400 dark:text-slate-600">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.16.0-beta</p>
+            <p>v0.17.0-beta</p>
          </div>
       </footer>
 
