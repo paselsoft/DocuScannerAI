@@ -3,6 +3,12 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.18.0-beta] - 2025-02-24
+### Security
+- **Hardcoded Credentials Removal:** Rimosse email e password precompilate dal form di login per maggiore sicurezza.
+- **User Settings:** Nuovo pannello di impostazioni utente accessibile dall'Header.
+- **Change Password:** Aggiunta funzionalità per cambiare la password dell'account direttamente dall'applicazione.
+
 ## [0.17.0-beta] - 2025-02-24
 ### Added
 - **Archive Statistics Widget:** Nuova barra di riepilogo nell'archivio cloud.

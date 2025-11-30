@@ -16,6 +16,7 @@ import { ResultPreview } from './components/ResultPreview';
 import { PreviewModal } from './components/PreviewModal';
 import { ChatModal } from './components/ChatModal';
 import { StatsWidget } from './components/StatsWidget';
+import { SettingsModal } from './components/SettingsModal';
 import { 
   ExtractedData, FileData, ProcessingStatus, DocumentSession, ChatMessage
 } from './types';
@@ -82,6 +83,7 @@ function App() {
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set()); // Bulk Selection
   const [isJotformOpen, setIsJotformOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPdfMenuOpen, setIsPdfMenuOpen] = useState(false);
 
@@ -215,6 +217,21 @@ function App() {
       console.error(error);
       toast.error("Errore caricamento storico");
     }
+  };
+
+  const handleLogout = async () => {
+    // 1. Pulizia manuale LocalStorage
+    Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+            localStorage.removeItem(key);
+        }
+    });
+
+    // 2. Logout servizio
+    await supabase.auth.signOut();
+    
+    // 3. Reload
+    window.location.reload(); 
   };
 
   const handleConfigSubmit = (e: React.FormEvent) => {
@@ -867,7 +884,12 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col transition-colors duration-300">
-      <Header isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
+      <Header 
+        isDarkMode={isDarkMode} 
+        toggleTheme={toggleTheme} 
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        userEmail={user.email}
+      />
 
       <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
@@ -1434,6 +1456,14 @@ function App() {
 
       </main>
 
+      {/* Settings Modal */}
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        userEmail={user?.email}
+        onLogout={handleLogout}
+      />
+
       {/* Jotform Modal */}
       {activeSession.extractedData && (
         <JotformModal 
@@ -1492,7 +1522,7 @@ function App() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400 dark:text-slate-600">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.17.0-beta</p>
+            <p>v0.18.0-beta</p>
          </div>
       </footer>
 

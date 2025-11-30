@@ -7,7 +7,7 @@ export const AuthForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('paselsoft@gmail.com');
-  const [password, setPassword] = useState('voodoo67');
+  const [password, setPassword] = useState('V00d00$$1967');
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
