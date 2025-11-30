@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import { 
   Plus, History, FileText, Trash2, Save, Download, 
   ExternalLink, Loader2, Eye, ArrowUpDown, X, Pencil, Filter, Database, Key, Cloud, CheckCircle, AlertCircle, ScanSearch, Printer, Send,
-  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search, CheckSquare, Square
+  Sparkles, RefreshCw, Lock, Unlock, FileSpreadsheet, ShieldCheck, QrCode, Share2, CalendarClock, AlertTriangle, MessageSquareText, Search, CheckSquare, Square, Tag
 } from 'lucide-react';
 import { Header } from './components/Header';
 import { UploadArea } from './components/UploadArea';
@@ -31,6 +31,7 @@ import { scanQrCodeFromImage } from './services/qrService';
 import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
 import { rotateImage } from './services/imageUtils';
 import { getExpirationInfo, parseItalianDate } from './services/dateUtils';
+import { getTagColor } from './services/tagUtils';
 
 const generateId = () => Math.random().toString(36).substring(2, 9);
 
@@ -85,6 +86,7 @@ function App() {
   // Vault States
   const [searchQuery, setSearchQuery] = useState("");
   const [vaultFilter, setVaultFilter] = useState<string>("Tutti");
+  const [tagFilter, setTagFilter] = useState<string>(""); // Filtro per tag
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest' | 'type' | 'expiration'>('newest');
   const [previewDoc, setPreviewDoc] = useState<SavedDocument | null>(null);
   const [docToDelete, setDocToDelete] = useState<string | null>(null);
@@ -467,7 +469,7 @@ function App() {
       );
       
       // 3. MERGE DATI (QR vince su AI per CF) e REVERSE ENGINEERING CF
-      const finalData = { ...data };
+      const finalData = { ...data, tags: [] }; // Init tags empty
       if (qrFiscalCode) {
           finalData.codice_fiscale = qrFiscalCode.toUpperCase();
       }
@@ -528,7 +530,7 @@ function App() {
     });
   };
 
-  const handleFormChange = (field: keyof ExtractedData, value: string) => {
+  const handleFormChange = (field: keyof ExtractedData, value: any) => {
     if (activeSession.extractedData) {
       updateActiveSession({
         extractedData: {
@@ -712,12 +714,22 @@ function App() {
   };
 
   // --- Rendering Helpers ---
+  // Estrai tutti i tag univoci dai documenti salvati
+  const availableTags = Array.from(new Set(
+      savedDocs.flatMap(doc => doc.content.tags || [])
+  )).sort();
+
   const getFilteredAndSortedDocs = () => {
     let result = savedDocs;
 
     // Filter by Type
     if (vaultFilter !== "Tutti") {
       result = result.filter(doc => doc.doc_type === vaultFilter);
+    }
+    
+    // Filter by Tag
+    if (tagFilter) {
+      result = result.filter(doc => doc.content.tags?.includes(tagFilter));
     }
 
     // Filter by Search Query
@@ -727,6 +739,9 @@ function App() {
         // Search in summary
         if (doc.summary.toLowerCase().includes(q)) return true;
         
+        // Search in tags
+        if (doc.content.tags?.some(t => t.toLowerCase().includes(q))) return true;
+
         // Search in extracted content fields (safe access)
         const content = doc.content;
         return (
@@ -1182,6 +1197,23 @@ function App() {
                         </div>
                     </div>
 
+                    {/* TAG FILTER */}
+                    {availableTags.length > 0 && (
+                        <div className="relative">
+                            <select 
+                                value={tagFilter}
+                                onChange={(e) => setTagFilter(e.target.value)}
+                                className="appearance-none bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium px-3 py-1.5 rounded-lg pr-8 focus:outline-none hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer"
+                            >
+                                <option value="">Tutti i Tag</option>
+                                {availableTags.map(tag => (
+                                    <option key={tag} value={tag}>{tag}</option>
+                                ))}
+                            </select>
+                            <Tag className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        </div>
+                    )}
+
                     <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide max-w-full">
                         {VAULT_FILTERS.map(filter => (
                         <button
@@ -1207,6 +1239,8 @@ function App() {
                    <p className="text-slate-500 dark:text-slate-400 text-sm">
                        {searchQuery 
                          ? `Nessun risultato per "${searchQuery}"`
+                         : tagFilter
+                         ? `Nessun documento con tag "${tagFilter}"`
                          : `Nessun documento trovato per "${vaultFilter}"`}
                    </p>
                 </div>
@@ -1215,6 +1249,7 @@ function App() {
                   {sortedDocs.map((savedDoc) => {
                     const expiryInfo = getExpirationInfo(savedDoc.content.data_scadenza);
                     const isSelected = selectedDocIds.has(savedDoc.id);
+                    const docTags = savedDoc.content.tags || [];
                     
                     return (
                       <div 
@@ -1271,6 +1306,22 @@ function App() {
                           {String(savedDoc.summary)}
                         </h4>
                         
+                        {/* TAGS DISPLAY */}
+                        {!savedDoc.is_error && docTags.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                {docTags.slice(0, 3).map((tag, i) => (
+                                    <span key={i} className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${getTagColor(tag)}`}>
+                                        {tag}
+                                    </span>
+                                ))}
+                                {docTags.length > 3 && (
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 px-1.5 py-0.5 bg-slate-50 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
+                                        +{docTags.length - 3}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        
                         {/* Expiration Badge & Bar */}
                         {!savedDoc.is_error && expiryInfo.status !== 'unknown' && (
                            <div className="mb-4">
@@ -1303,7 +1354,7 @@ function App() {
                             : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40'
                           }`}
                         >
-                          {savedDoc.is_error ? "Illeggibile (Elimina)" : savedDoc.is_encrypted ? "Decifra e Carica" : "Carica nel workspace"}
+                          {savedDoc.is_error ? "Illeggibile (Elimina)" : savedDoc.is_encrypted ? "Decifra e Modifica" : "Carica nel workspace"}
                         </button>
                       </div>
                     );
@@ -1410,7 +1461,7 @@ function App() {
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-4 mt-auto">
          <div className="max-w-7xl mx-auto px-6 flex justify-between items-center text-xs text-slate-400 dark:text-slate-600">
             <p>&copy; {new Date().getFullYear()} DocuScanner AI</p>
-            <p>v0.14.0-beta</p>
+            <p>v0.15.0-beta</p>
          </div>
       </footer>
 

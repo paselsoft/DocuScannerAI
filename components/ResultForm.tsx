@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { ExtractedData } from '../types';
 import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck, Users } from 'lucide-react';
+import { TagInput } from './TagInput';
 
 interface ResultFormProps {
   data: ExtractedData;
-  onChange: (field: keyof ExtractedData, value: string) => void;
+  onChange: (field: keyof ExtractedData, value: any) => void;
   sessions?: any[];
   activeSessionId?: string;
   setActiveSessionId?: (id: string) => void;
@@ -58,6 +59,10 @@ export const ResultForm: React.FC<ResultFormProps> = ({
     onChange(field, value);
   };
 
+  const handleTagsChange = (newTags: string[]) => {
+    onChange('tags', newTags);
+  };
+
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedType = e.target.value;
     const existingSession = sessions.find(s => 
@@ -106,6 +111,14 @@ export const ResultForm: React.FC<ResultFormProps> = ({
       
       <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
         
+        {/* Full width Tag Input */}
+        <div className="md:col-span-2">
+           <TagInput 
+              tags={data.tags || []} 
+              onChange={handleTagsChange} 
+           />
+        </div>
+
         <FieldInput 
           label="Cognome"
           icon={User}

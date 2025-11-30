@@ -3,9 +3,17 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.15.0-beta] - 2025-02-24
+### Added
+- **Custom Tags (Tag Personalizzati):** Possibilità di etichettare i documenti.
+    - **Tag Input:** Nuova interfaccia per aggiungere tag (es. "Lavoro", "Urgente") ai documenti.
+    - **Colori Automatici:** I tag vengono colorati automaticamente in base al testo per una facile distinzione visiva.
+    - **Filtro Avanzato:** Nuovo menu a tendina nell'Archivio per filtrare i documenti in base ai tag assegnati.
+    - **Crittografia E2EE:** I tag sono salvati all'interno del payload cifrato, garantendo la privacy totale delle etichette.
+
 ## [0.14.0-beta] - 2025-02-24
 ### Added
-- **Bulk Actions (Azioni di Massa):** Gestione avanzata dell'archivio documenti.
+- **Bulk Actions (Azioni di Massa):** Gestione avanzata dell'archivio.
     - **Selezione Multipla:** Checkbox interactive sulle card per selezionare più documenti contemporaneamente.
     - **Floating Action Bar:** Barra comandi contestuale che appare alla selezione, permettendo azioni rapide.
     - **Bulk Delete:** Eliminazione di più documenti in un solo click.

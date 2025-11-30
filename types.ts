@@ -11,6 +11,7 @@ export interface ExtractedData {
   data_scadenza?: string;
   data_rilascio?: string;
   tipo_documento: string;
+  tags?: string[]; // Array di tag personalizzati
 }
 
 export interface FileData {
