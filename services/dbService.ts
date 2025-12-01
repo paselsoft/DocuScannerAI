@@ -12,7 +12,7 @@ export interface SavedDocument {
   is_error?: boolean; // Flag per indicare decrittazione fallita
 }
 
-export const saveDocumentToDb = async (data: ExtractedData): Promise<void> => {
+export const saveDocumentToDb = async (data: ExtractedData, docId?: string): Promise<void> => {
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) throw new Error("Utente non autenticato");
@@ -20,19 +20,47 @@ export const saveDocumentToDb = async (data: ExtractedData): Promise<void> => {
   // CIFRATURA CLIENT-SIDE
   // Il contenuto viene trasformato in { iv: "...", data: "...", isEncrypted: true }
   const encryptedContent = await encryptData(data);
+  const summary = `${data.tipo_documento} - ${data.cognome} ${data.nome}`;
 
-  const { error } = await supabase
-    .from('documents')
-    .insert({
-      user_id: user.id,
-      doc_type: data.tipo_documento,
-      summary: `${data.tipo_documento} - ${data.cognome} ${data.nome}`,
-      content: encryptedContent // Salviamo il payload cifrato nel campo JSONB
-    });
+  if (docId) {
+    // UPDATE: Aggiorna documento esistente
+    const { data: updatedRows, error } = await supabase
+      .from('documents')
+      .update({
+        doc_type: data.tipo_documento,
+        summary: summary,
+        content: encryptedContent,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', docId)
+      .eq('user_id', user.id) // Sicurezza aggiuntiva
+      .select(); // Verifica che l'update sia avvenuto effettivamente
 
-  if (error) {
-    console.error("Errore salvataggio DB:", error);
-    throw new Error("Errore durante il salvataggio nel cloud.");
+    if (error) {
+      console.error("Errore aggiornamento DB:", error);
+      throw new Error("Errore durante l'aggiornamento del documento.");
+    }
+
+    // Se RLS blocca l'update, updatedRows sarà vuoto
+    if (!updatedRows || updatedRows.length === 0) {
+      throw new Error("Aggiornamento fallito: Il database non ha confermato la modifica. Verifica le policy RLS.");
+    }
+
+  } else {
+    // INSERT: Crea nuovo documento
+    const { error } = await supabase
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        doc_type: data.tipo_documento,
+        summary: summary,
+        content: encryptedContent // Salviamo il payload cifrato nel campo JSONB
+      });
+
+    if (error) {
+      console.error("Errore salvataggio DB:", error);
+      throw new Error("Errore durante il salvataggio nel cloud.");
+    }
   }
 };
 

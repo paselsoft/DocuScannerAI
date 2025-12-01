@@ -3,6 +3,22 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.19.13-beta] - 2025-02-24
+### Fixed
+- **DB Update Verification:** Rafforzata la logica di aggiornamento nel database (`saveDocumentToDb`).
+    - Aggiunto controllo esplicito (`.select()`) per verificare che il database abbia effettivamente modificato il record.
+    - Se l'aggiornamento fallisce silenziosamente (es. a causa di policy RLS mancanti), l'applicazione ora lancia un errore visibile invece di confermare falsamente il salvataggio.
+
+## [0.19.12-beta] - 2025-02-24
+### Security
+- **RLS Policy Support:** Documentata e verificata la necessità della policy SQL `Users can update own documents` per permettere la modifica dei documenti (es. aggiunta Tag) che prima venivano bloccati dal database in scrittura.
+
+## [0.19.11-beta] - 2025-02-24
+### Fixed
+- **Update vs Insert Logic:** Risolto un problema per cui la modifica di un documento già salvato (es. aggiunta di Tag) creava un duplicato invece di aggiornare l'originale.
+    - Ora il pulsante di salvataggio rileva automaticamente se si sta lavorando su un documento esistente.
+    - Il testo del pulsante cambia dinamicamente in "Aggiorna" (arancione) se si sta modificando, o "Salva" (verde) se è un nuovo documento.
+
 ## [0.19.10-beta] - 2025-02-24
 ### Fixed
 - **PDF Layout Separation:** Modificato radicalmente il posizionamento degli elementi nel PDF "Legalizzazione".

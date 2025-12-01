@@ -1,7 +1,7 @@
 
 # DocuScanner AI
 
-**Versione:** 0.19.10-beta
+**Versione:** 0.19.13-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
@@ -81,6 +81,7 @@ alter table documents enable row level security;
 create policy "Users can see own documents" on documents for select using ( auth.uid() = user_id );
 create policy "Users can insert own documents" on documents for insert with check ( auth.uid() = user_id );
 create policy "Users can delete own documents" on documents for delete using ( auth.uid() = user_id );
+create policy "Users can update own documents" on documents for update using ( auth.uid() = user_id );
 
 -- 2. Tabella Chiavi Utente (Sync crittografia)
 create table user_keys (

@@ -1,5 +1,4 @@
-
-// FORCE UPDATE: v0.19.10-beta
+// FORCE UPDATE: v0.19.13-beta
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -35,7 +34,7 @@ import {
 } from './types';
 import { 
   Plus, Download, Trash2, MessageSquare, Printer, Save, Loader2, Layout, 
-  AlertTriangle, FileText, Search, Filter, ArrowUpDown, CheckSquare, Square, X, MoreHorizontal, Share2, Eye, Calendar
+  AlertTriangle, FileText, Search, Filter, ArrowUpDown, CheckSquare, Square, X, MoreHorizontal, Share2, Eye, Calendar, RefreshCw, Pencil
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -49,6 +48,9 @@ const App: React.FC = () => {
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus>(ProcessingStatus.IDLE);
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  
+  // Track ID of the document being edited to allow updates instead of inserts
+  const [editingDocId, setEditingDocId] = useState<string | null>(null);
 
   // Saved Docs State & Filtering
   const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
@@ -165,6 +167,9 @@ const App: React.FC = () => {
 
   // --- File Processing Logic ---
   const handleFilesSelected = async (files: File[]) => {
+    // New scan means new document, clear editing ID
+    setEditingDocId(null);
+    
     let newFront = frontFile;
     let newBack = backFile;
 
@@ -279,9 +284,37 @@ const App: React.FC = () => {
   const handleSave = async () => {
     if (!extractedData) return;
     try {
-      await saveDocumentToDb(extractedData);
-      toast.success("Documento salvato nel cloud!");
-      loadSavedDocs();
+      // Pass editingDocId to update instead of insert if available
+      await saveDocumentToDb(extractedData, editingDocId || undefined);
+      
+      if (editingDocId) {
+          // CASE UPDATE: 
+          // Update local state immediately to reflect changes in UI.
+          // IMPORTANT: Do NOT fetch from DB immediately to avoid race conditions 
+          // where stale data overwrites the optimistic update.
+          
+          // Deep copy to ensure state change detection
+          const updatedContent = JSON.parse(JSON.stringify(extractedData));
+          
+          setSavedDocs(prev => prev.map(doc => {
+              if (doc.id === editingDocId) {
+                  return {
+                      ...doc,
+                      content: updatedContent, // Update content including new tags
+                      summary: `${updatedContent.tipo_documento} - ${updatedContent.cognome} ${updatedContent.nome}`,
+                      updated_at: new Date().toISOString()
+                  };
+              }
+              return doc;
+          }));
+          
+          toast.success("Documento aggiornato!");
+      } else {
+          // CASE INSERT:
+          // We need to fetch to get the generated ID and structure
+          toast.success("Documento salvato nel cloud!");
+          loadSavedDocs(); 
+      }
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -331,6 +364,13 @@ const App: React.FC = () => {
           return next;
        });
 
+       // Reset editing ID if we deleted the doc being edited
+       if (editingDocId === id) {
+           setEditingDocId(null);
+           setExtractedData(null);
+           setProcessingStatus(ProcessingStatus.IDLE);
+       }
+
        try {
           await deleteDocumentFromDb(id);
           toast.success("Documento eliminato.");
@@ -347,6 +387,12 @@ const App: React.FC = () => {
        // Optimistic UI Update
        setSavedDocs(prev => prev.filter(d => !selectedDocIds.has(d.id)));
        setSelectedDocIds(new Set());
+       
+       if (editingDocId && selectedDocIds.has(editingDocId)) {
+           setEditingDocId(null);
+           setExtractedData(null);
+           setProcessingStatus(ProcessingStatus.IDLE);
+       }
 
        try {
           await deleteDocumentsFromDb(idsToDelete);
@@ -451,6 +497,8 @@ const App: React.FC = () => {
 
   const handleLoadDirect = (doc: SavedDocument) => {
     setProcessingStatus(ProcessingStatus.IDLE);
+    setEditingDocId(doc.id); // Set the editing ID to allow updates
+    
     setTimeout(() => {
         setExtractedData(doc.content);
         setProcessingStatus(ProcessingStatus.SUCCESS);
@@ -502,6 +550,7 @@ const App: React.FC = () => {
                  setExtractedData(null);
                  setProcessingStatus(ProcessingStatus.IDLE);
                  setChatHistory([]); // Reset chat history
+                 setEditingDocId(null); // Clear editing ID
                }}
                className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
             >
@@ -522,7 +571,14 @@ const App: React.FC = () => {
         {/* Results Section */}
         {processingStatus === ProcessingStatus.SUCCESS && extractedData && (
           <section ref={resultsRef} className="animate-fade-in space-y-4 scroll-mt-20">
-            <h2 className="text-lg font-semibold text-slate-800 dark:text-white">Risultati Analisi</h2>
+            <h2 className="text-lg font-semibold text-slate-800 dark:text-white flex items-center gap-2">
+                Risultati Analisi
+                {editingDocId && (
+                    <span className="text-xs font-normal bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Pencil className="w-3 h-3" /> Modifica in corso
+                    </span>
+                )}
+            </h2>
             
             <ResultForm 
               data={extractedData} 
@@ -531,8 +587,14 @@ const App: React.FC = () => {
 
             {/* Full Action Toolbar */}
             <div className="flex flex-wrap gap-3 mt-4">
-                <button onClick={handleSave} className="flex-1 bg-emerald-600 text-white px-4 py-3 rounded-lg hover:bg-emerald-700 shadow-md transition-colors font-semibold flex items-center justify-center gap-2">
-                  <Save className="w-5 h-5" /> Salvato
+                <button 
+                  onClick={handleSave} 
+                  className={`flex-1 text-white px-4 py-3 rounded-lg shadow-md transition-colors font-semibold flex items-center justify-center gap-2
+                    ${editingDocId ? 'bg-orange-600 hover:bg-orange-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+                  `}
+                >
+                  {editingDocId ? <RefreshCw className="w-5 h-5" /> : <Save className="w-5 h-5" />} 
+                  {editingDocId ? "Aggiorna" : "Salva"}
                 </button>
                 
                 <button onClick={() => setIsChatOpen(true)} className="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 shadow-md transition-colors font-semibold flex items-center justify-center gap-2">
@@ -665,6 +727,7 @@ const App: React.FC = () => {
                filteredDocs.map(doc => {
                  const expiration = getExpirationInfo(doc.content.data_scadenza);
                  const isSelected = selectedDocIds.has(doc.id);
+                 const isEditing = editingDocId === doc.id;
 
                  return (
                    <div 
@@ -672,13 +735,14 @@ const App: React.FC = () => {
                       className={`
                         group relative bg-white dark:bg-slate-900 rounded-xl border transition-all duration-200 overflow-hidden hover:shadow-md
                         ${isSelected ? 'border-blue-500 ring-1 ring-blue-500' : 'border-slate-200 dark:border-slate-700'}
+                        ${isEditing ? 'ring-2 ring-orange-400 border-orange-400' : ''}
                       `}
                    >
                      {/* Header Card */}
                      <div className="p-4 flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 overflow-hidden">
-                           <div className={`p-2 rounded-lg flex-shrink-0 ${doc.is_error ? 'bg-red-100 text-red-600' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
-                              {doc.is_error ? <AlertTriangle className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                           <div className={`p-2 rounded-lg flex-shrink-0 ${doc.is_error ? 'bg-red-100 text-red-600' : isEditing ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                              {doc.is_error ? <AlertTriangle className="w-5 h-5" /> : isEditing ? <Pencil className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                            </div>
                            <div className="min-w-0">
                               <p className="text-xs text-slate-500 dark:text-slate-400 mb-0.5">{doc.doc_type}</p>
@@ -865,7 +929,7 @@ const App: React.FC = () => {
       {/* Footer Version */}
       <div className="text-center py-4 text-[10px] text-slate-400 dark:text-slate-600">
         &copy; 2025 DocuScanner AI
-        <span className="float-right mr-4">v0.19.10-beta</span>
+        <span className="float-right mr-4">v0.19.13-beta</span>
       </div>
     </div>
   );
