@@ -3,6 +3,21 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.20.1-beta] - 2025-02-25
+### Changed
+- **Manual Analysis Button:** Ripristinato il controllo manuale sull'analisi dei documenti.
+    - Rimossa l'analisi automatica al momento della selezione del file.
+    - Aggiunto un pulsante centrale **"Analizza Documento"** che appare solo dopo aver caricato un file.
+    - Migliorata la UX per caricamenti multi-file (fronte/retro) e prevenzione di chiamate API accidentali.
+
+## [0.20.0-beta] - 2025-02-25
+### Added
+- **Encrypted Image Storage:** Implementato salvataggio delle immagini (Fronte/Retro) direttamente nel database cifrato.
+    - **Compressione Smart:** Le immagini vengono ridimensionate (max 1024px) e compresse (JPEG 60%) prima del salvataggio per ottimizzare lo spazio e le prestazioni.
+    - **Anteprima Immagini:** Il modale di anteprima ora include una scheda "Immagini" che permette di visualizzare le scansioni originali salvate nel cloud.
+    - **Sicurezza:** Anche le immagini, essendo parte del payload JSON, beneficiano della crittografia E2EE (AES-GCM) client-side.
+- **Update Logic Refinement:** Migliorata la gestione degli aggiornamenti: se si modificano solo i dati testuali di un documento, le immagini esistenti vengono preservate automaticamente senza doverle ricaricare.
+
 ## [0.19.13-beta] - 2025-02-24
 ### Fixed
 - **DB Update Verification:** Rafforzata la logica di aggiornamento nel database (`saveDocumentToDb`).

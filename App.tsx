@@ -1,4 +1,5 @@
-// FORCE UPDATE: v0.19.13-beta
+
+// FORCE UPDATE: v0.20.1-beta
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -16,7 +17,7 @@ import { supabase } from './services/supabaseClient';
 import { extractDataFromDocument } from './services/geminiService';
 import { saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, deleteDocumentsFromDb, SavedDocument } from './services/dbService';
 import { fileToBase64, convertHeicToJpeg } from './services/utils';
-import { rotateImage } from './services/imageUtils';
+import { rotateImage, compressAndResizeImage } from './services/imageUtils';
 import { scanQrCodeFromImage } from './services/qrService';
 import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
 import { syncMasterKey } from './services/security';
@@ -34,7 +35,7 @@ import {
 } from './types';
 import { 
   Plus, Download, Trash2, MessageSquare, Printer, Save, Loader2, Layout, 
-  AlertTriangle, FileText, Search, Filter, ArrowUpDown, CheckSquare, Square, X, MoreHorizontal, Share2, Eye, Calendar, RefreshCw, Pencil
+  AlertTriangle, FileText, Search, Filter, ArrowUpDown, CheckSquare, Square, X, MoreHorizontal, Share2, Eye, Calendar, RefreshCw, Pencil, ScanFace, Sparkles
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -170,6 +171,10 @@ const App: React.FC = () => {
     // New scan means new document, clear editing ID
     setEditingDocId(null);
     
+    // Reset status to allow new analysis
+    setProcessingStatus(ProcessingStatus.IDLE);
+    setExtractedData(null);
+    
     let newFront = frontFile;
     let newBack = backFile;
 
@@ -201,10 +206,9 @@ const App: React.FC = () => {
 
     setFrontFile(newFront);
     setBackFile(newBack);
-
-    if (newFront) {
-      processDocument(newFront, newBack);
-    }
+    
+    // NOTA: Rimossa chiamata automatica a processDocument.
+    // L'utente deve cliccare il pulsante "Analizza Documento".
   };
 
   const processDocument = async (front: FileData, back: FileData | null) => {
@@ -284,23 +288,44 @@ const App: React.FC = () => {
   const handleSave = async () => {
     if (!extractedData) return;
     try {
+      const payload = { ...extractedData };
+
+      // Image Compression & Attachment Logic
+      // 1. If we have new files in state, compress and add them
+      if (frontFile) {
+        payload.front_img = await compressAndResizeImage(frontFile.file);
+      }
+      if (backFile) {
+        payload.back_img = await compressAndResizeImage(backFile.file);
+      }
+
+      // 2. If we are updating an existing doc AND we didn't upload new files,
+      // check if the old doc had images and preserve them.
+      if (editingDocId) {
+        const originalDoc = savedDocs.find(d => d.id === editingDocId);
+        if (originalDoc) {
+           if (!payload.front_img && originalDoc.content.front_img) {
+             payload.front_img = originalDoc.content.front_img;
+           }
+           if (!payload.back_img && originalDoc.content.back_img) {
+             payload.back_img = originalDoc.content.back_img;
+           }
+        }
+      }
+
       // Pass editingDocId to update instead of insert if available
-      await saveDocumentToDb(extractedData, editingDocId || undefined);
+      await saveDocumentToDb(payload, editingDocId || undefined);
       
       if (editingDocId) {
           // CASE UPDATE: 
           // Update local state immediately to reflect changes in UI.
-          // IMPORTANT: Do NOT fetch from DB immediately to avoid race conditions 
-          // where stale data overwrites the optimistic update.
-          
-          // Deep copy to ensure state change detection
-          const updatedContent = JSON.parse(JSON.stringify(extractedData));
+          const updatedContent = JSON.parse(JSON.stringify(payload));
           
           setSavedDocs(prev => prev.map(doc => {
               if (doc.id === editingDocId) {
                   return {
                       ...doc,
-                      content: updatedContent, // Update content including new tags
+                      content: updatedContent, // Update content including new tags and images
                       summary: `${updatedContent.tipo_documento} - ${updatedContent.cognome} ${updatedContent.nome}`,
                       updated_at: new Date().toISOString()
                   };
@@ -311,7 +336,6 @@ const App: React.FC = () => {
           toast.success("Documento aggiornato!");
       } else {
           // CASE INSERT:
-          // We need to fetch to get the generated ID and structure
           toast.success("Documento salvato nel cloud!");
           loadSavedDocs(); 
       }
@@ -566,6 +590,27 @@ const App: React.FC = () => {
             onRotateFront={() => handleRotate(true)}
             onRotateBack={() => handleRotate(false)}
           />
+
+          {/* Manual Analyze Button */}
+          {frontFile && processingStatus !== ProcessingStatus.SUCCESS && (
+            <div className="flex justify-center mt-6 animate-fade-in">
+              <button
+                onClick={() => processDocument(frontFile, backFile)}
+                disabled={processingStatus === ProcessingStatus.PROCESSING}
+                className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-blue-700 hover:shadow-blue-500/30 transition-all transform hover:scale-105 disabled:opacity-70 disabled:scale-100 flex items-center gap-3"
+              >
+                {processingStatus === ProcessingStatus.PROCESSING ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" /> Analisi in corso...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" /> Analizza Documento
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Results Section */}
@@ -929,7 +974,7 @@ const App: React.FC = () => {
       {/* Footer Version */}
       <div className="text-center py-4 text-[10px] text-slate-400 dark:text-slate-600">
         &copy; 2025 DocuScanner AI
-        <span className="float-right mr-4">v0.19.13-beta</span>
+        <span className="float-right mr-4">v0.20.1-beta</span>
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
+
 {
   "name": "docuscanner-ai",
   "private": true,
-  "version": "0.19.13-beta",
+  "version": "0.20.1-beta",
   "type": "module",
   "scripts": {
     "dev": "vite",

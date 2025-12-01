@@ -1,3 +1,4 @@
+
 export interface ExtractedData {
   cognome: string;
   nome: string;
@@ -12,6 +13,8 @@ export interface ExtractedData {
   data_rilascio?: string;
   tipo_documento: string;
   tags?: string[]; // Array di tag personalizzati
+  front_img?: string; // Base64 compresso dell'immagine fronte
+  back_img?: string; // Base64 compresso dell'immagine retro
 }
 
 export interface FileData {
