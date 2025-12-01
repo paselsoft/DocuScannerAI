@@ -1,5 +1,5 @@
 
-// FORCE UPDATE: v0.20.1-beta
+// FORCE UPDATE: v0.20.4-beta
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -342,6 +342,12 @@ const App: React.FC = () => {
     } catch (e: any) {
       toast.error(e.message);
     }
+  };
+
+  // Helper per mantenere sync lo stato quando si aggiorna dal modale Anteprima
+  const handleDocUpdated = (updatedDoc: SavedDocument) => {
+      setSavedDocs(prev => prev.map(doc => doc.id === updatedDoc.id ? updatedDoc : doc));
+      setPreviewDoc(updatedDoc); // Aggiorna anche l'anteprima corrente
   };
 
   const handleCalendarExport = (data: ExtractedData) => {
@@ -969,12 +975,13 @@ const App: React.FC = () => {
         previewDoc={previewDoc}
         onClose={() => setPreviewDoc(null)}
         onLoad={handleLoadDirect}
+        onDocUpdated={handleDocUpdated}
       />
       
       {/* Footer Version */}
       <div className="text-center py-4 text-[10px] text-slate-400 dark:text-slate-600">
         &copy; 2025 DocuScanner AI
-        <span className="float-right mr-4">v0.20.1-beta</span>
+        <span className="float-right mr-4">v0.20.4-beta</span>
       </div>
     </div>
   );

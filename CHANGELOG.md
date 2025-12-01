@@ -3,6 +3,24 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.20.4-beta] - 2025-02-25
+### Fixed
+- **Image Delete Confirmation:** Sostituito il dialogo nativo `window.confirm` con un overlay di conferma integrato nell'immagine.
+    - Risolve il problema del click "a vuoto" su dispositivi touch e browser che bloccano i popup nativi.
+    - L'eliminazione dell'immagine ora richiede una conferma esplicita tramite pulsanti UI (Annulla/Conferma) direttamente sull'anteprima.
+
+## [0.20.3-beta] - 2025-02-25
+### Added
+- **Image Replacement Logic:** Aggiunta la possibilità di rimuovere e sostituire le immagini esistenti nel modale di anteprima.
+    - Un pulsante "Cestino" appare ora sopra le immagini già caricate (Fronte/Retro).
+    - Cliccando su elimina, l'immagine viene rimossa dal documento e dal database, ripristinando l'area di upload per permettere il caricamento del file corretto.
+
+## [0.20.2-beta] - 2025-02-25
+### Added
+- **Retroactive Image Upload:** Nuova funzionalità che permette di aggiungere immagini (Fronte/Retro) a documenti già salvati che ne erano sprovvisti.
+    - Se un documento non ha un'immagine associata, nel tab "Immagini" del modale di anteprima appare un pulsante per caricarla.
+    - L'immagine caricata viene compressa, cifrata e salvata automaticamente nel database senza dover ricaricare l'intero documento.
+
 ## [0.20.1-beta] - 2025-02-25
 ### Changed
 - **Manual Analysis Button:** Ripristinato il controllo manuale sull'analisi dei documenti.
