@@ -3,6 +3,12 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.21.1-beta] - 2025-02-25
+### Added
+- **Image Straightening (Raddrizzamento):** Aggiunto uno slider di rotazione fine (-180° a +180°) nel modale di ritaglio.
+    - Permette di correggere scansioni storte di pochi gradi.
+    - Migliorato lo slider dello Zoom (ora parte da 0.5x) per facilitare l'adattamento di immagini grandi nel riquadro di ritaglio.
+
 ## [0.21.0-beta] - 2025-02-25
 ### Added
 - **Image Cropping (Ritaglio):** Implementato un potente strumento di ritaglio integrato nel caricamento.
