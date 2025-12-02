@@ -1,5 +1,5 @@
 
-// FORCE UPDATE: v0.21.2-beta
+// FORCE UPDATE: v0.21.4-beta
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -996,7 +996,7 @@ const App: React.FC = () => {
       {/* Footer Version */}
       <div className="text-center py-4 text-[10px] text-slate-400 dark:text-slate-600">
         &copy; 2025 DocuScanner AI
-        <span className="float-right mr-4">v0.21.2-beta</span>
+        <span className="float-right mr-4">v0.21.4-beta</span>
       </div>
     </div>
   );

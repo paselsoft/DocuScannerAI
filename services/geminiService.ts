@@ -196,3 +196,73 @@ export const askDocumentQuestion = async (
     throw new Error("Impossibile contattare l'assistente AI.");
   }
 };
+
+// Nuova interfaccia per la geometria
+export interface DocumentGeometry {
+  rotation: number; // Gradi
+  box: {
+    ymin: number;
+    xmin: number;
+    ymax: number;
+    xmax: number;
+  }
+}
+
+export const analyzeDocumentGeometry = async (base64Image: string): Promise<DocumentGeometry> => {
+  if (!process.env.API_KEY) throw new Error("API Key mancante");
+
+  try {
+    // Usiamo flash-lite per velocità, dato che è un task geometrico semplice
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/jpeg',
+              data: base64Image
+            }
+          },
+          {
+            text: `Analizza questa immagine. Il tuo compito è identificare il documento principale (carta d'identità, patente, foglio, etc.).
+            Restituisci un JSON con due informazioni:
+            1. "rotation": L'angolo in gradi (positivo o negativo, tra -180 e 180) necessario per ruotare l'immagine affinché il testo del documento sia perfettamente orizzontale e dritto.
+            2. "box": Le coordinate del bounding box che racchiude il documento, espresse in valori percentuali da 0 a 100 (ymin, xmin, ymax, xmax).
+            `
+          }
+        ]
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            rotation: { type: Type.NUMBER, description: "Angolo di rotazione in gradi" },
+            box: {
+              type: Type.OBJECT,
+              properties: {
+                ymin: { type: Type.NUMBER },
+                xmin: { type: Type.NUMBER },
+                ymax: { type: Type.NUMBER },
+                xmax: { type: Type.NUMBER }
+              },
+              required: ["ymin", "xmin", "ymax", "xmax"]
+            }
+          },
+          required: ["rotation", "box"]
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    if (result.rotation === undefined || !result.box) {
+      throw new Error("Dati geometrici non validi");
+    }
+
+    return result as DocumentGeometry;
+
+  } catch (error) {
+    console.error("Errore analisi geometrica:", error);
+    throw new Error("Impossibile rilevare automaticamente il documento.");
+  }
+};

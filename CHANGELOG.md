@@ -3,6 +3,17 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.21.4-beta] - 2025-02-25
+### Added
+- **Auto Crop:** Nuovo pulsante "Auto Crop" nel modale di ritaglio.
+    - Oltre a raddrizzare l'immagine, sposta (Pan) automaticamente la visuale per centrare perfettamente il documento rilevato dall'AI, correggendo foto scattate decentrate.
+
+## [0.21.3-beta] - 2025-02-25
+### Added
+- **Auto Magic Crop (Beta):** Aggiunto pulsante "Auto Raddrizza" nel modale di ritaglio.
+    - Utilizza l'AI (Gemini Flash) per rilevare automaticamente l'inclinazione del documento e calcolare l'angolo di rotazione ideale.
+    - Esegue uno zoom automatico (Smart Zoom) per centrare e ingrandire il documento rilevato, rimuovendo bordi inutili.
+
 ## [0.21.2-beta] - 2025-02-25
 ### Added
 - **Cropping in Anteprima:** Estesa la funzionalità di ritaglio e raddrizzamento anche al modale di "Anteprima/Modifica".
