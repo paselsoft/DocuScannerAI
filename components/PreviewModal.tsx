@@ -3,6 +3,8 @@ import { SavedDocument, saveDocumentToDb } from '../services/dbService';
 import { compressAndResizeImage } from '../services/imageUtils';
 import { FileText, X, Pencil, Image as ImageIcon, Upload, Loader2, Plus, Trash2, Check, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { ImageCropper } from './ImageCropper';
+import { convertHeicToJpeg } from '../services/utils';
 
 interface PreviewModalProps {
   previewDoc: SavedDocument | null;
@@ -16,6 +18,10 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ previewDoc, onClose,
   const [isUploading, setIsUploading] = useState<'front' | 'back' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<'front' | 'back' | null>(null);
   
+  // Cropper State
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<'front' | 'back' | null>(null);
+  
   const fileInputRefFront = useRef<HTMLInputElement>(null);
   const fileInputRefBack = useRef<HTMLInputElement>(null);
   
@@ -25,17 +31,69 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ previewDoc, onClose,
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'front' | 'back') => {
     if (!e.target.files || e.target.files.length === 0) return;
     
-    const file = e.target.files[0];
+    let file = e.target.files[0];
+    
+    // Se è un PDF, processa direttamente senza crop
+    if (file.type === 'application/pdf') {
+        await processCroppedImage(file, type);
+        // Reset input
+        if (e.target) e.target.value = '';
+        return;
+    }
+
+    // Gestione Immagini (incluso HEIC)
+    try {
+         if (file.name.toLowerCase().endsWith('.heic')) {
+            file = await convertHeicToJpeg(file);
+         }
+         
+         const objectUrl = URL.createObjectURL(file);
+         setCropImageSrc(objectUrl);
+         setCropType(type);
+         
+         // Reset input subito per permettere di riselezionare lo stesso file se annullato
+         if (e.target) e.target.value = '';
+         
+    } catch (err) {
+        console.error(err);
+        toast.error("Errore lettura file immagine");
+    }
+  };
+
+  const processCroppedImage = async (file: File, type: 'front' | 'back') => {
     setIsUploading(type);
+    
+    // Pulizia Cropper se aperto
+    if (cropImageSrc) {
+        URL.revokeObjectURL(cropImageSrc);
+        setCropImageSrc(null);
+        setCropType(null);
+    }
 
     try {
         // 1. Comprimi immagine
-        const compressedBase64 = await compressAndResizeImage(file);
+        let processedBase64: string;
+        
+        if (file.type === 'application/pdf') {
+             // Se dovessimo gestire PDF qui in futuro (es. miniatura)
+             // Per ora questo flusso è pensato per immagini ritagliate
+             // Ma lasciamo un fallback se il file arriva qui
+             const reader = new FileReader();
+             processedBase64 = await new Promise((resolve) => {
+                reader.onload = () => {
+                     const res = reader.result as string;
+                     resolve(res.split(',')[1]);
+                };
+                reader.readAsDataURL(file);
+             });
+        } else {
+             processedBase64 = await compressAndResizeImage(file);
+        }
         
         // 2. Prepara il nuovo oggetto dati
         const updatedContent = {
             ...data,
-            [type === 'front' ? 'front_img' : 'back_img']: compressedBase64
+            [type === 'front' ? 'front_img' : 'back_img']: processedBase64
         };
 
         // 3. Salva nel DB (Aggiornamento parziale)
@@ -49,16 +107,20 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ previewDoc, onClose,
         };
         
         onDocUpdated(updatedDoc);
-        toast.success(`Immagine ${type === 'front' ? 'fronte' : 'retro'} caricata!`);
+        toast.success(`Immagine ${type === 'front' ? 'fronte' : 'retro'} salvata!`);
 
     } catch (error: any) {
         console.error("Errore upload immagine:", error);
         toast.error("Errore durante il salvataggio dell'immagine.");
     } finally {
         setIsUploading(null);
-        // Reset input
-        if (e.target) e.target.value = '';
     }
+  };
+
+  const handleCropCancel = () => {
+      if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
+      setCropType(null);
   };
 
   const executeRemoveImage = async () => {
@@ -92,6 +154,16 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ previewDoc, onClose,
   };
 
   return (
+    <>
+    {/* Cropper Modal Overlay */}
+    {cropImageSrc && cropType && (
+        <ImageCropper 
+            imageSrc={cropImageSrc}
+            onCancel={handleCropCancel}
+            onCropComplete={(croppedFile) => processCroppedImage(croppedFile, cropType)}
+        />
+    )}
+
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in">
       <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 dark:border-slate-800 flex flex-col max-h-[90vh] transition-colors">
         
@@ -352,5 +424,6 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ previewDoc, onClose,
         </div>
       </div>
     </div>
+    </>
   );
 };

@@ -3,6 +3,11 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.21.2-beta] - 2025-02-25
+### Added
+- **Cropping in Anteprima:** Estesa la funzionalità di ritaglio e raddrizzamento anche al modale di "Anteprima/Modifica".
+    - Ora è possibile modificare e perfezionare le immagini anche quando vengono caricate o sostituite su documenti già archiviati, garantendo coerenza con il flusso di caricamento principale.
+
 ## [0.21.1-beta] - 2025-02-25
 ### Added
 - **Image Straightening (Raddrizzamento):** Aggiunto uno slider di rotazione fine (-180° a +180°) nel modale di ritaglio.
