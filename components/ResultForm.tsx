@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ExtractedData } from '../types';
-import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck, Users } from 'lucide-react';
+import { User, Calendar, MapPin, Map, CreditCard, FileBadge, Hash, ChevronDown, Pencil, Copy, Check, AlertTriangle, CalendarCheck, Users, Eye, EyeOff, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { TagInput } from './TagInput';
+import { extractInfoFromFiscalCode } from '../services/fiscalCodeUtils';
 
 interface ResultFormProps {
   data: ExtractedData;
@@ -77,6 +78,18 @@ export const ResultForm: React.FC<ResultFormProps> = ({
     }
   };
 
+  // Logica di Validazione Incrociata (CF vs Dati)
+  const cfValidation = useMemo(() => {
+     if (!data.codice_fiscale || data.codice_fiscale.length !== 16) return null;
+     
+     const computed = extractInfoFromFiscalCode(data.codice_fiscale);
+     const isDateMatch = !data.data_nascita || (computed.data_nascita === data.data_nascita);
+     const isGenderMatch = !data.sesso || (computed.sesso === data.sesso);
+     
+     if (isDateMatch && isGenderMatch) return 'valid';
+     return 'invalid';
+  }, [data.codice_fiscale, data.data_nascita, data.sesso]);
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden group transition-colors">
       <div className="bg-slate-50 dark:bg-slate-900/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
@@ -143,7 +156,7 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           value={data.sesso}
           onChange={handleChange('sesso', Formatters.gender)}
           placeholder="M / F"
-          className="uppercase w-20"
+          className="uppercase"
         />
 
         <FieldInput 
@@ -194,6 +207,8 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           validate={Validators.cf}
           warningMessage="Dovrebbe essere di 16 caratteri"
           maxLength={16}
+          isSensitive={true}
+          validationStatus={cfValidation}
         />
 
         <FieldInput 
@@ -202,6 +217,7 @@ export const ResultForm: React.FC<ResultFormProps> = ({
           value={data.numero_documento}
           onChange={handleChange('numero_documento', Formatters.upper)}
           className="font-mono uppercase"
+          isSensitive={true}
         />
 
         <FieldInput 
@@ -241,6 +257,8 @@ interface FieldInputProps {
   validate?: (val: string) => boolean;
   warningMessage?: string;
   maxLength?: number;
+  isSensitive?: boolean;
+  validationStatus?: 'valid' | 'invalid' | null;
 }
 
 const FieldInput: React.FC<FieldInputProps> = ({ 
@@ -252,9 +270,12 @@ const FieldInput: React.FC<FieldInputProps> = ({
   placeholder,
   validate,
   warningMessage,
-  maxLength
+  maxLength,
+  isSensitive = false,
+  validationStatus
 }) => {
   const [copied, setCopied] = useState(false);
+  const [showValue, setShowValue] = useState(!isSensitive);
   
   const isValid = validate ? validate(value) : true;
   const showWarning = value && !isValid;
@@ -270,33 +291,59 @@ const FieldInput: React.FC<FieldInputProps> = ({
     <div className="space-y-1 relative group/field">
       <label className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1 justify-between">
         <span className="flex items-center gap-1"><Icon className="w-3 h-3" /> {label}</span>
-        {showWarning && (
-            <span className="text-[10px] text-orange-600 dark:text-orange-400 flex items-center gap-1 animate-pulse">
-                <AlertTriangle className="w-3 h-3" /> {warningMessage || 'Formato non valido'}
-            </span>
-        )}
+        <div className="flex items-center gap-2">
+            {validationStatus === 'valid' && (
+                 <span className="text-[10px] text-green-600 dark:text-green-400 flex items-center gap-1 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">
+                    <ShieldCheck className="w-3 h-3" /> Verificato
+                 </span>
+            )}
+            {validationStatus === 'invalid' && (
+                 <span className="text-[10px] text-orange-600 dark:text-orange-400 flex items-center gap-1 bg-orange-50 dark:bg-orange-900/30 px-1.5 py-0.5 rounded">
+                    <ShieldAlert className="w-3 h-3" /> Discrepanza
+                 </span>
+            )}
+            {showWarning && (
+                <span className="text-[10px] text-orange-600 dark:text-orange-400 flex items-center gap-1 animate-pulse">
+                    <AlertTriangle className="w-3 h-3" /> {warningMessage || 'Formato non valido'}
+                </span>
+            )}
+        </div>
       </label>
       <div className="relative">
         <input
-            type="text"
+            type={showValue ? "text" : "password"}
             value={value}
             onChange={onChange}
             placeholder={placeholder}
             maxLength={maxLength}
             className={`
-                w-full pl-3 pr-10 py-2 bg-white dark:bg-slate-900 border rounded-lg outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600
+                w-full pl-3 ${isSensitive ? 'pr-16' : 'pr-9'} py-2 bg-white dark:bg-slate-900 border rounded-lg outline-none transition-all text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600
                 focus:ring-2 focus:ring-blue-500 focus:border-blue-500
                 ${showWarning ? 'border-orange-300 dark:border-orange-500 bg-orange-50 dark:bg-orange-900/20 focus:border-orange-500' : 'border-slate-300 dark:border-slate-600'}
+                ${isSensitive && !showValue ? 'tracking-widest' : ''}
                 ${className}
             `}
         />
-        <button
-            onClick={handleCopy}
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            title="Copia"
-        >
-            {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-        </button>
+        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+            {isSensitive && (
+                <button
+                    onClick={() => setShowValue(!showValue)}
+                    className="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title={showValue ? "Nascondi" : "Mostra"}
+                    type="button"
+                >
+                    {showValue ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+            )}
+            <button
+                onClick={handleCopy}
+                className="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Copia"
+                type="button"
+            >
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+            </button>
+        </div>
       </div>
     </div>
   );
