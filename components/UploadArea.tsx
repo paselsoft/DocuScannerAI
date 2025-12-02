@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera, RotateCw, ClipboardPaste } from 'lucide-react';
+import { CloudUpload, Image as ImageIcon, X, Plus, Files, FileText, Loader2, Camera, RotateCw, ClipboardPaste, Crop } from 'lucide-react';
 import { FileData } from '../types';
 import { toast } from 'react-toastify';
+import { ImageCropper } from './ImageCropper';
+import { convertHeicToJpeg } from '../services/utils';
 
 interface UploadAreaProps {
   frontFile: FileData | null;
@@ -25,6 +27,10 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Cropper State
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+
   // Gestione Incolla (Ctrl+V)
   useEffect(() => {
     const handlePaste = async (e: ClipboardEvent) => {
@@ -46,9 +52,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
 
       if (pastedFiles.length > 0) {
         toast.info("Immagine incollata dagli appunti!");
-        setIsProcessing(true);
-        await onFilesSelected(pastedFiles);
-        setIsProcessing(false);
+        handleFileProcessingFlow(pastedFiles);
       }
     };
 
@@ -56,7 +60,7 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
     return () => {
       window.removeEventListener('paste', handlePaste);
     };
-  }, [onFilesSelected]);
+  }, []);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -72,73 +76,133 @@ export const UploadArea: React.FC<UploadAreaProps> = ({
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setIsProcessing(true);
-      await onFilesSelected(Array.from(e.dataTransfer.files));
-      setIsProcessing(false);
+      handleFileProcessingFlow(Array.from(e.dataTransfer.files));
     }
   };
 
-  const handleFileSelect = async (files: File[]) => {
+  // Centralized File Handling Logic
+  const handleFileProcessingFlow = async (files: File[]) => {
     setIsProcessing(true);
+    
+    // Se c'è un solo file ed è un'immagine, offri il ritaglio
+    if (files.length === 1) {
+       const file = files[0];
+       const isImage = file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic');
+       const isPdf = file.type === 'application/pdf';
+
+       if (isImage && !isPdf) {
+           let fileToCrop = file;
+           
+           // Converti HEIC prima del ritaglio se necessario
+           if (file.name.toLowerCase().endsWith('.heic')) {
+               try {
+                  fileToCrop = await convertHeicToJpeg(file);
+               } catch(e) {
+                  console.error(e);
+                  toast.error("Errore lettura HEIC");
+                  setIsProcessing(false);
+                  return;
+               }
+           }
+
+           const objectUrl = URL.createObjectURL(fileToCrop);
+           setCropFile(fileToCrop);
+           setCropImageSrc(objectUrl);
+           setIsProcessing(false); // Stop processing spinner, waiting for crop
+           return;
+       }
+    }
+
+    // Se sono più file o PDF, processa direttamente
     await onFilesSelected(files);
     setIsProcessing(false);
-  }
+  };
+
+  const onCropComplete = (croppedFile: File) => {
+      // Clean up
+      if (cropImageSrc) URL.revokeObjectURL(cropImageSrc);
+      setCropImageSrc(null);
+      setCropFile(null);
+      
+      // Pass the cropped file to the main app logic
+      onFilesSelected([croppedFile]);
+  };
+
+  const onCropCancel = () => {
+      // If cancelled, upload the original file
+      if (cropFile && cropImageSrc) {
+          URL.revokeObjectURL(cropImageSrc);
+          onFilesSelected([cropFile]);
+      }
+      setCropImageSrc(null);
+      setCropFile(null);
+  };
 
   return (
-    <div 
-      className={`relative p-8 rounded-2xl border-2 border-dashed transition-all ${
-        isDragging ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 scale-[1.01]' : 'border-slate-300 dark:border-slate-700 bg-transparent'
-      }`}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      {/* Visual cue for drop zone */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col items-center justify-center opacity-0 transition-opacity duration-200" style={{ opacity: isDragging ? 1 : 0 }}>
-        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-full mb-4">
-          <Files className="w-10 h-10 text-blue-600 dark:text-blue-400" />
-        </div>
-        <p className="text-xl font-bold text-blue-600 dark:text-blue-400">Rilascia i documenti qui</p>
-      </div>
-      
-      {isProcessing && (
-        <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center rounded-2xl">
-          <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
-          <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Elaborazione file...</p>
-        </div>
-      )}
+    <>
+        {cropImageSrc && (
+            <ImageCropper 
+                imageSrc={cropImageSrc}
+                onCancel={onCropCancel}
+                onCropComplete={onCropComplete}
+            />
+        )}
 
-      <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isDragging ? 'opacity-20 blur-sm' : ''}`}>
-        <SingleUploadBox 
-          label="Fronte Documento" 
-          fileData={frontFile} 
-          onFilesSelected={handleFileSelect} 
-          onRemove={onRemoveFront}
-          onRotate={onRotateFront}
-          color="blue"
-          isMain={true}
-        />
-        <SingleUploadBox 
-          label="Retro Documento" 
-          fileData={backFile} 
-          onFilesSelected={handleFileSelect} 
-          onRemove={onRemoveBack}
-          onRotate={onRotateBack}
-          color="slate"
-          isMain={false}
-        />
-      </div>
-      
-      {!frontFile && !backFile && !isDragging && (
-        <div className="text-center mt-6 text-slate-400 dark:text-slate-500 text-xs flex items-center justify-center gap-2">
-           <span>Suggerimento: Trascina file, usa i pulsanti o</span>
-           <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 dark:text-slate-400 font-mono">
-             <ClipboardPaste className="w-3 h-3" /> CTRL+V
-           </span>
-           <span>per incollare.</span>
+        <div 
+        className={`relative p-8 rounded-2xl border-2 border-dashed transition-all ${
+            isDragging ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 scale-[1.01]' : 'border-slate-300 dark:border-slate-700 bg-transparent'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        >
+        {/* Visual cue for drop zone */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none flex flex-col items-center justify-center opacity-0 transition-opacity duration-200" style={{ opacity: isDragging ? 1 : 0 }}>
+            <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-full mb-4">
+            <Files className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+            </div>
+            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">Rilascia i documenti qui</p>
         </div>
-      )}
-    </div>
+        
+        {isProcessing && (
+            <div className="absolute top-0 left-0 w-full h-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center rounded-2xl">
+            <Loader2 className="w-12 h-12 text-blue-600 dark:text-blue-400 animate-spin mb-4" />
+            <p className="text-lg font-semibold text-slate-700 dark:text-slate-300">Elaborazione file...</p>
+            </div>
+        )}
+
+        <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${isDragging ? 'opacity-20 blur-sm' : ''}`}>
+            <SingleUploadBox 
+            label="Fronte Documento" 
+            fileData={frontFile} 
+            onFilesSelected={handleFileProcessingFlow} 
+            onRemove={onRemoveFront}
+            onRotate={onRotateFront}
+            color="blue"
+            isMain={true}
+            />
+            <SingleUploadBox 
+            label="Retro Documento" 
+            fileData={backFile} 
+            onFilesSelected={handleFileProcessingFlow} 
+            onRemove={onRemoveBack}
+            onRotate={onRotateBack}
+            color="slate"
+            isMain={false}
+            />
+        </div>
+        
+        {!frontFile && !backFile && !isDragging && (
+            <div className="text-center mt-6 text-slate-400 dark:text-slate-500 text-xs flex items-center justify-center gap-2">
+            <span>Suggerimento: Trascina file, usa i pulsanti o</span>
+            <span className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded text-slate-500 dark:text-slate-400 font-mono">
+                <ClipboardPaste className="w-3 h-3" /> CTRL+V
+            </span>
+            <span>per incollare.</span>
+            </div>
+        )}
+        </div>
+    </>
   );
 };
 

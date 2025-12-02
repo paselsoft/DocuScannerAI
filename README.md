@@ -1,12 +1,13 @@
 
 # DocuScanner AI
 
-**Versione:** 0.20.4-beta
+**Versione:** 0.21.0-beta
 
 DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estrazione dati da documenti d'identità italiani (Carta d'Identità, Patente, Tessera Sanitaria) e automatizzare processi burocratici come la compilazione di moduli e l'inserimento dati in sistemi esterni.
 
 ## Caratteristiche Principali
 
+*   **Image Cropping:** Potente editor di immagini integrato per ritagliare e ruotare i documenti prima dell'analisi. Migliora la precisione dell'AI rimuovendo sfondi inutili.
 *   **In-Place Delete Confirmation:** Nuovo sistema di conferma eliminazione immagini integrato nell'anteprima (senza popup browser), per garantire compatibilità su tutti i dispositivi.
 *   **Image Replacement:** Funzionalità che permette di correggere errori di caricamento sostituendo o eliminando le immagini (Fronte/Retro) direttamente dall'anteprima.
 *   **Retroactive Image Upload:** Carica immagini mancanti su documenti già archiviati direttamente dall'anteprima, senza dover rifare la scansione.
@@ -52,7 +53,7 @@ DocuScanner AI è un'applicazione web moderna progettata per semplificare l'estr
 *   **Theme:** Tailwind Dark Mode (Class based).
 *   **PWA:** Service Worker, Web App Manifest, Web Share API.
 *   **AI:** Google Gemini API (`gemini-3-pro-preview`).
-*   **Image Processing:** `heic2any`, `pdfjs-dist`, Canvas API.
+*   **Image Processing:** `heic2any`, `pdfjs-dist`, `react-easy-crop`, Canvas API.
 *   **Barcode Scanning:** `@zxing/library`.
 *   **Security:** Web Crypto API (AES-GCM 256-bit).
 *   **Backend/Auth:** Supabase (Auth & Database).

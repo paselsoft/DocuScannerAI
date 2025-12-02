@@ -3,6 +3,15 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.21.0-beta] - 2025-02-25
+### Added
+- **Image Cropping (Ritaglio):** Implementato un potente strumento di ritaglio integrato nel caricamento.
+    - Quando si carica un'immagine singola (Fronte o Retro), si apre automaticamente un editor a schermo intero.
+    - Funzionalità incluse: Zoom, Pan, Rotazione e Griglia di ritaglio.
+    - L'AI analizza solo la porzione ritagliata, migliorando drasticamente la precisione dell'OCR rimuovendo sfondi rumorosi.
+    - Supporto per file HEIC (iPhone) che vengono convertiti automaticamente prima del ritaglio.
+    - Interfaccia touch-friendly per dispositivi mobili.
+
 ## [0.20.5-beta] - 2025-02-25
 ### Fixed
 - **PDF Worker Fix:** Risolto un errore critico (`error loading dynamically imported module`) durante il salvataggio di documenti PDF.
