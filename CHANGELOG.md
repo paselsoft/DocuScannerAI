@@ -3,6 +3,11 @@
 
 Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo file.
 
+## [0.20.5-beta] - 2025-02-25
+### Fixed
+- **PDF Worker Fix:** Risolto un errore critico (`error loading dynamically imported module`) durante il salvataggio di documenti PDF.
+    - Aggiornato il percorso del worker di `pdfjs-dist` per utilizzare la versione `.mjs` (ES Module), necessaria per la compatibilità con le versioni recenti della libreria (v5+).
+
 ## [0.20.4-beta] - 2025-02-25
 ### Fixed
 - **Image Delete Confirmation:** Sostituito il dialogo nativo `window.confirm` con un overlay di conferma integrato nell'immagine.
@@ -55,7 +60,7 @@ Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo fil
 ## [0.19.10-beta] - 2025-02-24
 ### Fixed
 - **PDF Layout Separation:** Modificato radicalmente il posizionamento degli elementi nel PDF "Legalizzazione".
-    - Il riquadro FOTO è stato spostato in alto (`y=65`) per occupare lo spazio tra il Titolo e il testo.
+    - Il riquadro FOTO è stato spostato in alto (`y=65`) per stare tra titolo e testo.
     - Il testo "Si legalizza la foto di..." è stato spostato significativamente in basso (`y=120`) per distanziarlo chiaramente dalla foto.
     - Il footer è stato riadattato (`y=220`) per seguire il flusso del testo.
 
@@ -132,7 +137,7 @@ Tutti i cambiamenti notevoli a questo progetto saranno documentati in questo fil
 - **Gestione Cronologia Chat:**
     - Aggiunto pulsante "Cestino" all'interno della Chat AI per resettare la conversazione corrente e iniziare un nuovo contesto.
     - La cronologia della chat viene ora pulita automaticamente quando si inizia una nuova scansione ("Nuovo Documento") per evitare contaminazioni tra sessioni diverse.
-- **Hardcoded Credentials Removal:** Rimosse email e password precompilate dal form di login per maggiore sicurezza.
+    - **Hardcoded Credentials Removal:** Rimosse email e password precompilate dal form di login per maggiore sicurezza.
 - **User Settings:** Nuovo pannello di impostazioni utente accessibile dall'Header.
 - **Change Password:** Aggiunta funzionalità per cambiare la password dell'account direttamente dall'applicazione.
 

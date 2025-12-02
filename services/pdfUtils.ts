@@ -2,7 +2,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 
 // Configura il worker. Utilizziamo un CDN per evitare configurazioni complesse di build con Vite per i worker file.
 // In produzione, sarebbe meglio servire il worker localmente.
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
+// FIX: Usiamo .mjs per il worker per compatibilità con i moduli ES dinamici di PDF.js v5+
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export const generatePdfThumbnail = async (file: File, scale: number = 1.5): Promise<string> => {
   try {
@@ -34,7 +35,8 @@ export const generatePdfThumbnail = async (file: File, scale: number = 1.5): Pro
       viewport: viewport,
     };
 
-    await page.render(renderContext).promise;
+    // Use type assertion to any to resolve potential type mismatch with RenderParameters in newer pdfjs-dist versions
+    await page.render(renderContext as any).promise;
 
     // Converti in stringa base64 (immagine)
     // Usiamo JPEG con qualità 0.8 per bilanciare qualità e peso

@@ -1,5 +1,5 @@
 
-// FORCE UPDATE: v0.20.4-beta
+// FORCE UPDATE: v0.20.5-beta
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 
@@ -18,6 +18,7 @@ import { extractDataFromDocument } from './services/geminiService';
 import { saveDocumentToDb, fetchDocumentsFromDb, deleteDocumentFromDb, deleteDocumentsFromDb, SavedDocument } from './services/dbService';
 import { fileToBase64, convertHeicToJpeg } from './services/utils';
 import { rotateImage, compressAndResizeImage } from './services/imageUtils';
+import { generatePdfThumbnail } from './services/pdfUtils';
 import { scanQrCodeFromImage } from './services/qrService';
 import { extractInfoFromFiscalCode } from './services/fiscalCodeUtils';
 import { syncMasterKey } from './services/security';
@@ -52,6 +53,7 @@ const App: React.FC = () => {
   
   // Track ID of the document being edited to allow updates instead of inserts
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Saved Docs State & Filtering
   const [savedDocs, setSavedDocs] = useState<SavedDocument[]>([]);
@@ -206,9 +208,6 @@ const App: React.FC = () => {
 
     setFrontFile(newFront);
     setBackFile(newBack);
-    
-    // NOTA: Rimossa chiamata automatica a processDocument.
-    // L'utente deve cliccare il pulsante "Analizza Documento".
   };
 
   const processDocument = async (front: FileData, back: FileData | null) => {
@@ -287,16 +286,28 @@ const App: React.FC = () => {
 
   const handleSave = async () => {
     if (!extractedData) return;
+    setIsSaving(true);
     try {
       const payload = { ...extractedData };
 
       // Image Compression & Attachment Logic
       // 1. If we have new files in state, compress and add them
       if (frontFile) {
-        payload.front_img = await compressAndResizeImage(frontFile.file);
+        if (frontFile.mimeType === 'application/pdf') {
+             // For PDF, generate a thumbnail to store as the image representation
+             const thumbDataUrl = await generatePdfThumbnail(frontFile.file);
+             payload.front_img = thumbDataUrl.split(',')[1];
+        } else {
+             payload.front_img = await compressAndResizeImage(frontFile.file);
+        }
       }
       if (backFile) {
-        payload.back_img = await compressAndResizeImage(backFile.file);
+        if (backFile.mimeType === 'application/pdf') {
+             const thumbDataUrl = await generatePdfThumbnail(backFile.file);
+             payload.back_img = thumbDataUrl.split(',')[1];
+        } else {
+             payload.back_img = await compressAndResizeImage(backFile.file);
+        }
       }
 
       // 2. If we are updating an existing doc AND we didn't upload new files,
@@ -341,6 +352,8 @@ const App: React.FC = () => {
       }
     } catch (e: any) {
       toast.error(e.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -640,12 +653,14 @@ const App: React.FC = () => {
             <div className="flex flex-wrap gap-3 mt-4">
                 <button 
                   onClick={handleSave} 
+                  disabled={isSaving}
                   className={`flex-1 text-white px-4 py-3 rounded-lg shadow-md transition-colors font-semibold flex items-center justify-center gap-2
                     ${editingDocId ? 'bg-orange-600 hover:bg-orange-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+                    ${isSaving ? 'opacity-70 cursor-wait' : ''}
                   `}
                 >
-                  {editingDocId ? <RefreshCw className="w-5 h-5" /> : <Save className="w-5 h-5" />} 
-                  {editingDocId ? "Aggiorna" : "Salva"}
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingDocId ? <RefreshCw className="w-5 h-5" /> : <Save className="w-5 h-5" />)} 
+                  {isSaving ? "Salvataggio..." : (editingDocId ? "Aggiorna" : "Salva")}
                 </button>
                 
                 <button onClick={() => setIsChatOpen(true)} className="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-lg hover:bg-indigo-700 shadow-md transition-colors font-semibold flex items-center justify-center gap-2">
@@ -981,7 +996,7 @@ const App: React.FC = () => {
       {/* Footer Version */}
       <div className="text-center py-4 text-[10px] text-slate-400 dark:text-slate-600">
         &copy; 2025 DocuScanner AI
-        <span className="float-right mr-4">v0.20.4-beta</span>
+        <span className="float-right mr-4">v0.20.5-beta</span>
       </div>
     </div>
   );
